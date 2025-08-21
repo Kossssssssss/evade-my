@@ -3,6 +3,7 @@ import { Enemy } from '../entities/enemy.js';
 import { ScreenManager } from '../screen_manager.js';
 import { Joystick } from '../joystick.js';
 import { locations } from '../configs/location_config.js';
+import { FallingItem } from '../entities/falling_item.js';
 
 export class GameScreen
 {
@@ -26,6 +27,12 @@ export class GameScreen
   private joystick?: Joystick;
   private player_speed: number = 300;
 
+  private score_point: number = 10;
+
+  private falling_items: FallingItem[] = [];
+  private last_item_spawn: number = 0;
+  private item_spawn_interval: number = 2;
+
   public constructor( canvas: HTMLCanvasElement, screen_manager: ScreenManager )
   {
     this.canvas = canvas;
@@ -39,8 +46,10 @@ export class GameScreen
     this.location_index = location_index;
     this.use_joystick = use_joystick;
 
-    this.spawn_interval = 1 / locations[location_index].spawn_rate;
-    this.enemy_speed = locations[location_index].enemy_speed;
+    const config = locations[location_index];
+    this.spawn_interval = 1 / config.spawn_rate;
+    this.enemy_speed = config.enemy_speed;
+    this.score_point = config.score_point;
   }
 
   public init(): void
@@ -82,7 +91,6 @@ export class GameScreen
 
   private update( dt: number ): void
   {
-    this.score += dt * 10;
     const now = performance.now() / 1000;
 
     if ( now - this.last_spawn_time >= this.spawn_interval )
@@ -90,6 +98,27 @@ export class GameScreen
       this.spawnEnemy();
       this.last_spawn_time = now;
     }
+
+    if ( now - this.last_item_spawn >= this.item_spawn_interval )
+    {
+      this.spawnFallingItem();
+      this.last_item_spawn = now;
+    }
+
+    for ( const item of this.falling_items )
+    {
+      item.update( dt );
+    }
+
+    this.falling_items = this.falling_items.filter( item =>
+    {
+      const dx = item.position.x - this.player.position.x;
+      const dy = item.position.y - this.player.position.y;
+      const dist = Math.hypot( dx, dy );
+      const caught = dist < item.radius + this.player.radius;
+      if ( caught ) this.score += this.score_point;
+      return !caught && item.position.y < this.canvas.height + item.radius;
+    } );
 
     for ( const enemy of this.enemies )
     {
@@ -124,6 +153,13 @@ export class GameScreen
     }
   }
 
+  private spawnFallingItem(): void
+  {
+    const x = Math.random() * ( this.canvas.width - 20 ) + 10;
+    const item = new FallingItem( x );
+    this.falling_items.push( item );
+  }
+
   public destroy(): void
   {
     this.running = false;
@@ -140,6 +176,11 @@ export class GameScreen
     for ( const enemy of this.enemies )
     {
       enemy.draw( this.ctx );
+    }
+
+    for ( const item of this.falling_items )
+    {
+      item.draw( this.ctx );
     }
 
     this.ctx.fillStyle = 'white';
