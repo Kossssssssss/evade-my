@@ -22,7 +22,12 @@ export class Joystick
   private toCanvasCoords( ev: PointerEvent ): Vector2
   {
     const rect = this.canvas.getBoundingClientRect();
-    return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+    const scaleX = this.canvas.width / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+    return {
+      x: ( ev.clientX - rect.left ) * scaleX,
+      y: ( ev.clientY - rect.top ) * scaleY
+    };
   }
 
   private onPointerDown = ( ev: PointerEvent ) =>
