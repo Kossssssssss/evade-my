@@ -36,8 +36,8 @@ export class MenuScreen
         }
       }
 
-      const joy_y = 200 + locations.length * 60;
-      const image_y = 250 + locations.length * 60;
+      const joy_y = 300 + locations.length * 60;
+      const image_y = 350 + locations.length * 60;
       if ( x >= 250 && x <= 550 && y >= joy_y - 30 && y <= joy_y )
       {
         this.use_joystick = !this.use_joystick;
@@ -68,7 +68,7 @@ export class MenuScreen
       this.ctx.fillText( loc.name, 250, 200 + i * 60 );
     }
 
-    const image_y = 250 + locations.length * 60;
+    const image_y = 350 + locations.length * 60;
 
     this.ctx.fillStyle = 'white';
     this.ctx.font = '24px Arial';
@@ -79,6 +79,6 @@ export class MenuScreen
     );
 
     this.ctx.font = '24px Arial';
-    this.ctx.fillText( `Use Joystick: ${this.use_joystick ? 'Yes' : 'No'}`, 250, 200 + locations.length * 60 );
+    this.ctx.fillText( `Use Joystick: ${this.use_joystick ? 'Yes' : 'No'}`, 250, 300 + locations.length * 60 );
   }
 }
