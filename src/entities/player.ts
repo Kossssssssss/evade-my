@@ -10,9 +10,11 @@ export class Player implements GameObject
   invincibleTimer: number = 0;
   invincibleDuration: number = 1; // seconds
 
-  constructor( image?: HTMLImageElement )
+  constructor()
   {
-    this.image = image;
+    this.image = new Image();
+    this.image.src = 'assets/player.png'; 
+    this.radius = 30; 
   }
 
   update( deltaTime: number ): void
@@ -31,7 +33,8 @@ export class Player implements GameObject
   {
     if ( this.image )
     {
-      ctx.drawImage( this.image, this.position.x - this.radius, this.position.y - this.radius, this.radius * 2, this.radius * 2 );
+      const size = this.radius * 2;
+      ctx.drawImage( this.image, this.position.x - this.radius, this.position.y - this.radius, size, size );
     } else
     {
       ctx.beginPath();
