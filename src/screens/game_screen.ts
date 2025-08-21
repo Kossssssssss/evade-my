@@ -78,7 +78,7 @@ export class GameScreen
       this.joystick = new Joystick( this.canvas );
     } else
     {
-      this.canvas.addEventListener( 'pointermove', this.handlePointerMove );
+      this.canvas.addEventListener( 'pointermove', this.handlePointerMove, { passive: false } );
     }
 
     requestAnimationFrame( this.loop );
@@ -352,6 +352,8 @@ export class GameScreen
 
   private handlePointerMove = ( ev: PointerEvent ): void =>
   {
+    ev.preventDefault();
+
     const rect = this.canvas.getBoundingClientRect();
     const x = ev.clientX - rect.left;
     const y = ev.clientY - rect.top;

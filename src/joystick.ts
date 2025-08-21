@@ -12,11 +12,11 @@ export class Joystick
   {
     this.canvas = canvas;
 
-    canvas.addEventListener( 'pointerdown', this.onPointerDown );
-    canvas.addEventListener( 'pointermove', this.onPointerMove );
-    canvas.addEventListener( 'pointerup', this.onPointerUp );
-    canvas.addEventListener( 'pointercancel', this.onPointerUp );
-    canvas.addEventListener( 'pointerleave', this.onPointerUp );
+    canvas.addEventListener( 'pointerdown', this.onPointerDown, { passive: false } );
+    canvas.addEventListener( 'pointermove', this.onPointerMove, { passive: false } );
+    canvas.addEventListener( 'pointerup', this.onPointerUp, { passive: false } );
+    canvas.addEventListener( 'pointercancel', this.onPointerUp, { passive: false } );
+    canvas.addEventListener( 'pointerleave', this.onPointerUp, { passive: false } );
   }
 
   private toCanvasCoords( ev: PointerEvent ): Vector2
@@ -27,6 +27,7 @@ export class Joystick
 
   private onPointerDown = ( ev: PointerEvent ) =>
   {
+    ev.preventDefault();
     const p = this.toCanvasCoords( ev );
     this.base = { ...p };
     this.pos = { ...p };
@@ -35,6 +36,7 @@ export class Joystick
   private onPointerMove = ( ev: PointerEvent ) =>
   {
     if ( !this.base ) return;
+    ev.preventDefault();
     const p = this.toCanvasCoords( ev );
 
     const dx = p.x - this.base.x;
