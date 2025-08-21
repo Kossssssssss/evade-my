@@ -112,10 +112,24 @@ export class GameScreen
       }
     }
 
-    if ( now - this.last_item_spawn >= this.item_spawn_interval )
+    if ( this.wave_controller.isCollecting() )
     {
-      this.spawnFallingItem();
-      this.last_item_spawn = now;
+      if ( now - this.last_item_spawn >= this.item_spawn_interval / 4 )
+      {
+        const num_items = 5; 
+        for ( let i = 0; i < num_items; i++ )
+        {
+          this.spawnFallingItem( true );
+        }
+        this.last_item_spawn = now;
+      }
+    } else
+    {
+      if ( now - this.last_item_spawn >= this.item_spawn_interval )
+      {
+        this.spawnFallingItem();
+        this.last_item_spawn = now;
+      }
     }
 
     for ( const item of this.falling_items )
@@ -180,10 +194,54 @@ export class GameScreen
     }
   }
 
-  private spawnFallingItem(): void
+  private spawnFallingItem( from_sides: boolean = false ): void
   {
-    const x = Math.random() * ( this.canvas.width - 20 ) + 10;
-    const item = new FallingItem( x );
+    let x = 0, y = 0;
+    let vx = 0, vy = 0;
+
+    const speed = 400;
+
+    if ( from_sides )
+    {
+      const side = Math.floor( Math.random() * 4 );
+
+      switch ( side )
+      {
+        case 0: // top
+          x = Math.random() * this.canvas.width;
+          y = -10;
+          vx = 0;
+          vy = speed;
+          break;
+        case 1: // bottom
+          x = Math.random() * this.canvas.width;
+          y = this.canvas.height + 10;
+          vx = 0;
+          vy = -speed;
+          break;
+        case 2: // left
+          x = -10;
+          y = Math.random() * this.canvas.height;
+          vx = speed;
+          vy = 0;
+          break;
+        case 3: // right
+          x = this.canvas.width + 10;
+          y = Math.random() * this.canvas.height;
+          vx = -speed;
+          vy = 0;
+          break;
+      }
+    }
+    else
+    {
+      x = Math.random() * ( this.canvas.width - 20 ) + 10;
+      y = -10;
+      vx = 0;
+      vy = 150; 
+    }
+
+    const item = new FallingItem( x, y, vx, vy );
     this.falling_items.push( item );
   }
 
@@ -247,6 +305,17 @@ export class GameScreen
         `Next wave in: ${Math.ceil( this.wave_controller.getTimer() )}s`,
         this.canvas.width / 2 - 100,
         100
+      );
+    }
+
+    if ( this.wave_controller.isCollecting() )
+    {
+      this.ctx.fillStyle = 'cyan';
+      this.ctx.font = '22px Arial';
+      this.ctx.fillText(
+        `Collect Bonus! Time left: ${this.wave_controller.getTimer().toFixed( 1 )}s`,
+        this.canvas.width / 2 - 120,
+        160
       );
     }
   }

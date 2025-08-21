@@ -9,6 +9,9 @@ export class WaveController
   private is_in_wave: boolean = true;
   private is_finished: boolean = false;
 
+  private is_collecting: boolean = false;
+  private readonly collect_duration: number = 10;
+
   public constructor( total_waves: number, wave_duration: number, pause_duration: number )
   {
     this.total_waves = total_waves;
@@ -30,27 +33,24 @@ export class WaveController
         if ( this.current_wave === this.total_waves )
         {
           this.is_in_wave = false;
-          this.is_finished = true;
-          this.timer = 0;
+          this.is_collecting = true;
+          this.timer = this.collect_duration;
           return;
         } else
         {
           this.is_in_wave = false;
           this.timer = this.pause_duration;
         }
-      }
-      else
+      } else if ( this.is_collecting )
+      {
+        this.is_collecting = false;
+        this.is_finished = true;
+        this.timer = 0;
+      } else
       {
         this.current_wave++;
-        if ( this.current_wave > this.total_waves )
-        {
-          this.is_finished = true;
-        }
-        else
-        {
-          this.is_in_wave = true;
-          this.timer = this.wave_duration;
-        }
+        this.is_in_wave = true;
+        this.timer = this.wave_duration;
       }
     }
   }
@@ -83,5 +83,10 @@ export class WaveController
   public isPaused(): boolean
   {
     return !this.is_in_wave && !this.is_finished;
+  }
+
+  public isCollecting(): boolean
+  {
+    return this.is_collecting;
   }
 }

@@ -3,15 +3,19 @@ export class FallingItem
   public position: { x: number, y: number };
   public radius: number = 10;
   public speed: number = 150;
+  private velocity: { x: number, y: number };
 
-  public constructor( x: number )
+  constructor( x: number, y: number, vx: number, vy: number, radius: number = 10 )
   {
-    this.position = { x, y: -this.radius };
+    this.position = { x, y };
+    this.radius = radius;
+    this.velocity = { x: vx, y: vy };
   }
 
   public update( dt: number ): void
   {
-    this.position.y += this.speed * dt;
+    this.position.x += this.velocity.x * dt;
+    this.position.y += this.velocity.y * dt;
   }
 
   public draw( ctx: CanvasRenderingContext2D ): void
