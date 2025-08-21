@@ -9,12 +9,17 @@ export class Player implements GameObject
   invincible: boolean = false;
   invincibleTimer: number = 0;
   invincibleDuration: number = 1; // seconds
+  use_image: boolean;
 
-  constructor()
+  constructor( use_image: boolean )
   {
-    this.image = new Image();
-    this.image.src = 'assets/player.png'; 
-    this.radius = 30; 
+    this.use_image = use_image;
+    console.log('use_image: ', this.use_image);
+    if ( this.use_image )
+    {
+      this.image = new Image();
+      this.image.src = './assets/player.png'; 
+    }
   }
 
   update( deltaTime: number ): void
@@ -31,7 +36,7 @@ export class Player implements GameObject
 
   draw( ctx: CanvasRenderingContext2D ): void
   {
-    if ( this.image )
+    if ( this.use_image && this.image )
     {
       const size = this.radius * 2;
       ctx.drawImage( this.image, this.position.x - this.radius, this.position.y - this.radius, size, size );

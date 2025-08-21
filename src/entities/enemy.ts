@@ -6,16 +6,21 @@ export class Enemy implements GameObject
   velocity: Vector2;
   radius: number = 15;
   image?: HTMLImageElement;
+  use_image: boolean;
 
-  constructor( position: Vector2, velocity: Vector2, image?: HTMLImageElement )
+  constructor( position: Vector2, velocity: Vector2, use_image: boolean, image?: HTMLImageElement )
   {
     this.position = position;
     this.velocity = velocity;
     this.image = image;
-    this.radius = 30;
+    this.radius = 20;
+    this.use_image = use_image;
 
-    this.image = new Image();
-    this.image.src = 'assets/enemy.png';
+    if ( this.use_image )
+    {
+      this.image = new Image();
+      this.image.src = 'assets/enemy.png';
+    }
   }
 
   update( deltaTime: number ): void

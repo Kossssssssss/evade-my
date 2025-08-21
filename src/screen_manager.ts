@@ -50,9 +50,9 @@ export class ScreenManager
     this.current_screen = screen;
   }
 
-  public startGame( location_index: number, use_joystick: boolean ): void
+  public startGame( location_index: number, use_joystick: boolean, use_images: boolean ): void
   {
-    this.game_screen.setConfig( location_index, use_joystick );
+    this.game_screen.setConfig( location_index, use_joystick, use_images );
     this.showScreen( 'game' );
   }
 

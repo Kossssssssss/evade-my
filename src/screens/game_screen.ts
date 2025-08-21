@@ -12,7 +12,7 @@ export class GameScreen
   private ctx: CanvasRenderingContext2D;
   private screen_manager: ScreenManager;
 
-  private player: Player;
+  private player!: Player;
   private enemies: Enemy[] = [];
   private score: number = 0;
   private running: boolean = false;
@@ -36,18 +36,20 @@ export class GameScreen
 
   private wave_controller!: WaveController;
 
+  private use_images: boolean = false;
+
   public constructor( canvas: HTMLCanvasElement, screen_manager: ScreenManager )
   {
     this.canvas = canvas;
     this.ctx = canvas.getContext( '2d' )!;
     this.screen_manager = screen_manager;
-    this.player = new Player();
   }
 
-  public setConfig( location_index: number, use_joystick: boolean ): void
+  public setConfig( location_index: number, use_joystick: boolean, use_images: boolean ): void
   {
     this.location_index = location_index;
     this.use_joystick = use_joystick;
+    this.use_images = use_images;
 
     const config = locations[location_index];
     this.spawn_interval = 1 / config.spawn_rate;
@@ -57,6 +59,8 @@ export class GameScreen
 
   public init(): void
   {
+    this.player = new Player( this.use_images );
+
     this.running = true;
     this.score = 0;
     this.enemies = [];
@@ -67,6 +71,7 @@ export class GameScreen
       y: this.canvas.height / 2
     };
     this.wave_controller = new WaveController( 5, 15, 8 );
+
 
     if ( this.use_joystick )
     {
@@ -341,7 +346,7 @@ export class GameScreen
     const vx = ( dx / len ) * speed;
     const vy = ( dy / len ) * speed;
 
-    const enemy = new Enemy( { x, y }, { x: vx, y: vy } );
+    const enemy = new Enemy( { x, y }, { x: vx, y: vy }, this.use_images );
     this.enemies.push( enemy );
   }
 

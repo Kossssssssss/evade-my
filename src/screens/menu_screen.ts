@@ -7,6 +7,7 @@ export class MenuScreen
   private ctx: CanvasRenderingContext2D;
   private screen_manager: ScreenManager;
   private use_joystick: boolean = false;
+  private use_images: boolean = false;
 
   public constructor( canvas: HTMLCanvasElement, screen_manager: ScreenManager )
   {
@@ -30,16 +31,24 @@ export class MenuScreen
         const by = 200 + i * 60;
         if ( x >= bx && x <= bx + 300 && y >= by - 30 && y <= by )
         {
-          this.screen_manager.startGame( i, this.use_joystick );
+          this.screen_manager.startGame( i, this.use_joystick, this.use_images );
           return;
         }
       }
 
       const joy_y = 200 + locations.length * 60;
+      const image_y = 250 + locations.length * 60;
       if ( x >= 250 && x <= 550 && y >= joy_y - 30 && y <= joy_y )
       {
         this.use_joystick = !this.use_joystick;
         this.draw();
+      }
+
+      if ( x >= 250 && x <= 550 && y >= image_y - 30 && y <= image_y )
+      {
+        this.use_images = !this.use_images;
+        this.draw();
+        return;
       }
     };
   }
@@ -58,6 +67,16 @@ export class MenuScreen
       const loc = locations[i];
       this.ctx.fillText( loc.name, 250, 200 + i * 60 );
     }
+
+    const image_y = 250 + locations.length * 60;
+
+    this.ctx.fillStyle = 'white';
+    this.ctx.font = '24px Arial';
+    this.ctx.fillText(
+      `Use images: ${this.use_images ? 'Yes' : 'No'}`,
+      250,
+      image_y
+    );
 
     this.ctx.font = '24px Arial';
     this.ctx.fillText( `Use Joystick: ${this.use_joystick ? 'Yes' : 'No'}`, 250, 200 + locations.length * 60 );
