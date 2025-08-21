@@ -1,4 +1,4 @@
-export interface ScoreEntry
+export interface IScoreEntry
 {
   score: number;
   date: Date;

@@ -1,4 +1,4 @@
-import { Vector2, GameObject } from './interfaces.js';
+import { Vector2, GameObject } from '../types/main.js';
 
 export class Player implements GameObject
 {

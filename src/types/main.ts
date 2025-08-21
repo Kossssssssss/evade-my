@@ -10,6 +10,6 @@ export interface GameObject
   velocity: Vector2;
   radius: number;
   image?: HTMLImageElement;
-  update( deltaTime: number ): void;
+  update( delta_time: number ): void;
   draw( ctx: CanvasRenderingContext2D ): void;
 }

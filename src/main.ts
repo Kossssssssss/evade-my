@@ -1,8 +1,7 @@
-import { Game } from './game.js';
+import { ScreenManager } from './screen_manager.js';
 
-document.addEventListener( 'DOMContentLoaded', () =>
+window.addEventListener( 'DOMContentLoaded', () =>
 {
-  const canvas = document.getElementById( 'gameCanvas' ) as HTMLCanvasElement;
-  const game = new Game( canvas );
-  game.run();
+  const screen_manager = new ScreenManager();
+  screen_manager.start();
 } );
