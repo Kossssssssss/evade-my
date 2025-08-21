@@ -2,7 +2,7 @@ import { Vector2 } from './interfaces.js';
 import { Player } from './player.js';
 import { Enemy } from './enemy.js';
 import { locations } from './locationConfig.js';
-import { ScoreEntry } from './scoreEntry.js';
+import { ScoreEntry } from './score_entry.js';
 
 export class Game
 {
