@@ -68,9 +68,11 @@ export class Joystick
     const dist = Math.hypot( dx, dy );
     if ( dist === 0 ) return { x: 0, y: 0 };
 
+    const intensity = Math.min( dist / this.radius, 1 );
+
     return {
-      x: dx / this.radius,
-      y: dy / this.radius
+      x: ( dx / dist ) * intensity,
+      y: ( dy / dist ) * intensity
     };
   }
 

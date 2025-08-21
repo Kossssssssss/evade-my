@@ -177,8 +177,8 @@ export class GameScreen
     if ( this.use_joystick && this.joystick )
     {
       const dir = this.joystick.getDirection();
-      this.player.position.x += dir.x * this.player_speed * dt;
-      this.player.position.y += dir.y * this.player_speed * dt;
+      this.player.position.x += dir.x * this.player_speed * dt * 0.5;
+      this.player.position.y += dir.y * this.player_speed * dt * 0.5;
 
       this.player.position.x = Math.max( this.player.radius, Math.min( this.canvas.width - this.player.radius, this.player.position.x ) );
       this.player.position.y = Math.max( this.player.radius, Math.min( this.canvas.height - this.player.radius, this.player.position.y ) );
