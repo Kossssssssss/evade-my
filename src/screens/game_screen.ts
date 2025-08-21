@@ -4,6 +4,7 @@ import { ScreenManager } from '../screen_manager.js';
 import { Joystick } from '../joystick.js';
 import { locations } from '../configs/location_config.js';
 import { FallingItem } from '../entities/falling_item.js';
+import { WaveController } from '../wave_controller.js';
 
 export class GameScreen
 {
@@ -32,6 +33,8 @@ export class GameScreen
   private falling_items: FallingItem[] = [];
   private last_item_spawn: number = 0;
   private item_spawn_interval: number = 2;
+
+  private wave_controller!: WaveController;
 
   public constructor( canvas: HTMLCanvasElement, screen_manager: ScreenManager )
   {
@@ -63,6 +66,7 @@ export class GameScreen
       x: this.canvas.width / 2,
       y: this.canvas.height / 2
     };
+    this.wave_controller = new WaveController( 5, 15, 8 );
 
     if ( this.use_joystick )
     {
@@ -89,14 +93,23 @@ export class GameScreen
     requestAnimationFrame( this.loop );
   };
 
+  private onWaveEnd(): void
+  {
+    this.enemies = [];
+  }
+
   private update( dt: number ): void
   {
     const now = performance.now() / 1000;
+    this.wave_controller.update( dt );
 
-    if ( now - this.last_spawn_time >= this.spawn_interval )
+    if ( this.wave_controller.inWave() )
     {
-      this.spawnEnemy();
-      this.last_spawn_time = now;
+      if ( now - this.last_spawn_time >= this.spawn_interval )
+      {
+        this.spawnEnemy();
+        this.last_spawn_time = now;
+      }
     }
 
     if ( now - this.last_item_spawn >= this.item_spawn_interval )
@@ -151,6 +164,20 @@ export class GameScreen
       this.player.position.x = Math.max( this.player.radius, Math.min( this.canvas.width - this.player.radius, this.player.position.x ) );
       this.player.position.y = Math.max( this.player.radius, Math.min( this.canvas.height - this.player.radius, this.player.position.y ) );
     }
+
+    if ( this.wave_controller.isFinished() )
+    {
+      this.destroy();
+      this.screen_manager.showScreen( 'results' );
+      return;
+    }
+
+    const is_paused = this.wave_controller.isPaused();
+
+    if ( is_paused )
+    {
+      this.onWaveEnd();
+    }
   }
 
   private spawnFallingItem(): void
@@ -191,6 +218,36 @@ export class GameScreen
     if ( this.use_joystick && this.joystick )
     {
       this.joystick.draw( this.ctx );
+    }
+
+    this.ctx.fillStyle = 'white';
+    this.ctx.font = '20px Arial';
+    this.ctx.fillText(
+      `Wave: ${this.wave_controller.getCurrentWave()} / ${this.wave_controller.getTotalWaves()}`,
+      10,
+      90
+    );
+
+    if ( this.wave_controller.inWave() )
+    {
+      this.ctx.fillText(
+        `Time left: ${this.wave_controller.getTimer().toFixed( 1 )}s`,
+        10,
+        120
+      );
+    } else if (
+      this.wave_controller.isPaused() &&
+      this.wave_controller.getCurrentWave() < this.wave_controller.getTotalWaves()
+    )
+    {
+      // показуємо таймер лише якщо ще БУДЕ наступна хвиля
+      this.ctx.fillStyle = 'yellow';
+      this.ctx.font = '24px Arial';
+      this.ctx.fillText(
+        `Next wave in: ${Math.ceil( this.wave_controller.getTimer() )}s`,
+        this.canvas.width / 2 - 100,
+        100
+      );
     }
   }
 
