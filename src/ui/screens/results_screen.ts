@@ -1,4 +1,4 @@
-import { ScreenManager } from "../screen_manager.js";
+import { ScreenManager } from "../../screen_manager.js";
 
 export class ResultsScreen
 {

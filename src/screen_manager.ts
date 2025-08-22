@@ -1,6 +1,6 @@
-import { MenuScreen } from './screens/menu_screen.js';
-import { GameScreen } from './screens/game_screen.js';
-import { ResultsScreen } from './screens/results_screen.js';
+import { MenuScreen } from './ui/screens/menu_screen.js';
+import { GameScreen } from './ui/screens/game_screen.js';
+import { ResultsScreen } from './ui/screens/results_screen.js';
 
 type ScreenName = 'menu' | 'game' | 'results';
 

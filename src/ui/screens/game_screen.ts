@@ -1,10 +1,10 @@
-import { Player } from '../entities/player.js';
-import { Enemy } from '../entities/enemy.js';
-import { ScreenManager } from '../screen_manager.js';
-import { Joystick } from '../joystick.js';
-import { locations } from '../configs/location_config.js';
-import { FallingItem } from '../entities/falling_item.js';
-import { WaveController } from '../wave_controller.js';
+import { Player } from '../../entities/player.js';
+import { Enemy } from '../../entities/enemy.js';
+import { ScreenManager } from '../../screen_manager.js';
+import { Joystick } from '../../joystick.js';
+import { locations } from '../../configs/location_config.js';
+import { FallingItem } from '../../entities/falling_item.js';
+import { WaveController } from '../../wave_controller.js';
 
 export class GameScreen
 {
