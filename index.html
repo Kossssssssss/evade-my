@@ -5,36 +5,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Evade Game</title>
-  <style>
-  html, body {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  touch-action: none;
-  user-select: none;
-}
-
-    body {
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #000;
-    }
-
-    canvas {
-      border: 1px solid #fff;
-      position: absolute;
-      touch-action: none;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <canvas id="menuCanvas" width="800" height="600"></canvas>
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
-  <canvas id="resultsCanvas" width="800" height="600"></canvas>
+  <canvas id="menuCanvas"></canvas>
+  <canvas id="gameCanvas"></canvas>
+  <canvas id="resultsCanvas"></canvas>
 
   <script type="module" src="dist/main.js"></script>
 </body>

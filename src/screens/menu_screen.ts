@@ -25,11 +25,15 @@ export class MenuScreen
       const x = ev.offsetX;
       const y = ev.offsetY;
 
+      const centerX = this.canvas.width / 2;
+      const half_width = 150;
+      const height = 30;
+
       for ( let i = 0; i < locations.length; i++ )
       {
-        const bx = 250;
-        const by = 200 + i * 60;
-        if ( x >= bx && x <= bx + 300 && y >= by - 30 && y <= by )
+        const textY = 200 + i * 60;
+        if ( x >= centerX - half_width && x <= centerX + half_width &&
+          y >= textY - height && y <= textY + height )
         {
           this.screen_manager.startGame( i, this.use_joystick, this.use_images );
           return;
@@ -38,13 +42,17 @@ export class MenuScreen
 
       const joy_y = 300 + locations.length * 60;
       const image_y = 350 + locations.length * 60;
-      if ( x >= 250 && x <= 550 && y >= joy_y - 30 && y <= joy_y )
+
+      if ( x >= centerX - half_width && x <= centerX + half_width &&
+        y >= joy_y - height && y <= joy_y + height )
       {
         this.use_joystick = !this.use_joystick;
         this.draw();
+        return;
       }
 
-      if ( x >= 250 && x <= 550 && y >= image_y - 30 && y <= image_y )
+      if ( x >= centerX - half_width && x <= centerX + half_width &&
+        y >= image_y - height && y <= image_y + height )
       {
         this.use_images = !this.use_images;
         this.draw();
@@ -60,25 +68,23 @@ export class MenuScreen
 
     this.ctx.fillStyle = 'white';
     this.ctx.font = '30px Arial';
-    this.ctx.fillText( 'SELECT MODE', 250, 100 );
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+
+    this.ctx.fillText( 'SELECT MODE', this.canvas.width / 2, 100 );
 
     for ( let i = 0; i < locations.length; i++ )
     {
       const loc = locations[i];
-      this.ctx.fillText( loc.name, 250, 200 + i * 60 );
+      this.ctx.fillText( loc.name, this.canvas.width / 2, 200 + i * 60 );
     }
 
+    const joy_y = 300 + locations.length * 60;
     const image_y = 350 + locations.length * 60;
 
-    this.ctx.fillStyle = 'white';
     this.ctx.font = '24px Arial';
-    this.ctx.fillText(
-      `Use images: ${this.use_images ? 'Yes' : 'No'}`,
-      250,
-      image_y
-    );
-
-    this.ctx.font = '24px Arial';
-    this.ctx.fillText( `Use Joystick: ${this.use_joystick ? 'Yes' : 'No'}`, 250, 300 + locations.length * 60 );
+    this.ctx.fillText( `Use Joystick: ${this.use_joystick ? 'Yes' : 'No'}`, this.canvas.width / 2, joy_y );
+    this.ctx.fillText( `Use images: ${this.use_images ? 'Yes' : 'No'}`, this.canvas.width / 2, image_y );
   }
+
 }

@@ -28,9 +28,18 @@ export class ResultsScreen
   {
     this.ctx.fillStyle = '#111';
     this.ctx.fillRect( 0, 0, this.canvas.width, this.canvas.height );
+
     this.ctx.fillStyle = 'white';
     this.ctx.font = '28px Arial';
-    this.ctx.fillText( `FINAL SCORE: ${this.final_score}`, 250, 280 );
-    this.ctx.fillText( 'CLICK TO RETURN TO MENU', 200, 340 );
+    this.ctx.textAlign = "center"; 
+    this.ctx.textBaseline = "middle";
+
+    const center_x = this.canvas.width / 2;
+
+    const score_y = this.canvas.height / 2 - 40;
+    const back_y = this.canvas.height / 2 + 20;
+
+    this.ctx.fillText( `FINAL SCORE: ${this.final_score}`, center_x, score_y );
+    this.ctx.fillText( "CLICK TO RETURN TO MENU", center_x, back_y );
   }
 }
