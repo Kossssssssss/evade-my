@@ -8,6 +8,7 @@ import { WaveController } from '../../wave_controller.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { AssetManager } from '../../assets_manager.js';
+import { LoaderScreen } from './loader_screen.js';
 
 export class GameScreen
 {
@@ -73,6 +74,17 @@ export class GameScreen
 
   public async init(): Promise<void>
   {
+    if ( !AssetManager.ready() )
+    {
+      const loaderScreen = new LoaderScreen( this.hud_canvas );
+      loaderScreen.start();
+
+      await AssetManager.loadAll();
+
+      loaderScreen.stop();
+      console.log( "✅ Assets loaded!" );
+    }
+
     this.running = true;
     this.score = 0;
     this.enemies = [];
@@ -80,7 +92,7 @@ export class GameScreen
     this.last_spawn_time = performance.now() / 1000;
 
     this.wave_controller = new WaveController( 5, 15, 8 );
-    await AssetManager.loadAll();
+
     this.renderer = new THREE.WebGLRenderer( { canvas: this.canvas } );
     this.renderer.setSize( this.canvas.width, this.canvas.height );
 
@@ -344,8 +356,88 @@ export class GameScreen
   public destroy(): void
   {
     this.running = false;
+
+    // 1. Прибрати listener
     this.canvas.removeEventListener( 'pointermove', this.handlePointerMove );
     this.joystick = undefined;
+
+    // 2. Видалити ворогів
+    for ( const enemy of this.enemies )
+    {
+      if ( enemy.model )
+      {
+        this.scene.remove( enemy.model );
+        enemy.model.traverse( ( child: any ) =>
+        {
+          if ( child.geometry ) child.geometry.dispose();
+          if ( child.material )
+          {
+            if ( Array.isArray( child.material ) )
+            {
+              child.material.forEach( ( m: THREE.Material ) => m.dispose() );
+            } else
+            {
+              child.material.dispose();
+            }
+          }
+        } );
+      }
+    }
+    this.enemies = [];
+
+    // 3. Видалити falling items (якщо вони мають mesh)
+    for ( const item of this.falling_items )
+    {
+      if ( ( item as any ).model )
+      {
+        this.scene.remove( ( item as any ).model );
+      }
+    }
+    this.falling_items = [];
+
+    // 4. Видалити гравця
+    if ( this.player.model )
+    {
+      this.scene.remove( this.player.model );
+      this.player.model.traverse( ( child: any ) =>
+      {
+        if ( child.geometry ) child.geometry.dispose();
+        if ( child.material )
+        {
+          if ( Array.isArray( child.material ) )
+          {
+            child.material.forEach( ( m: THREE.Material ) => m.dispose() );
+          } else
+          {
+            child.material.dispose();
+          }
+        }
+      } );
+    }
+
+    while ( this.scene.children.length > 0 )
+    {
+      const obj = this.scene.children[0];
+      this.scene.remove( obj );
+
+      obj.traverse?.( ( child: any ) =>
+      {
+        if ( child.geometry ) child.geometry.dispose();
+        if ( child.material )
+        {
+          if ( Array.isArray( child.material ) )
+          {
+            child.material.forEach( ( m: THREE.Material ) => m.dispose() );
+          } else
+          {
+            child.material.dispose();
+          }
+        }
+      } );
+    }
+
+    // 6. Очистити renderer (опційно)
+    this.renderer.dispose();
   }
 
   private draw(): void
