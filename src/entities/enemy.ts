@@ -7,23 +7,27 @@ export class Enemy
   public radius: number = 0.5;
 
   private speed: number = 2;
-  private target: { x: number, y: number };
+  private direction: { x: number, y: number }; // напрямок руху
 
   public model?: THREE.Object3D;
   private mixer?: THREE.AnimationMixer;
   private actions: Record<string, THREE.AnimationAction> = {};
   private current_action?: THREE.AnimationAction;
 
-  constructor( scene: THREE.Scene, startPos: { x: number, y: number } )
+  constructor( scene: THREE.Scene, start_pos: { x: number, y: number }, target_pos: { x: number, y: number } )
   {
-    this.position = { ...startPos };
-    this.target = { ...startPos };
+    this.position = { ...start_pos };
+
+    const dx = target_pos.x - start_pos.x;
+    const dy = target_pos.y - start_pos.y;
+    const dist = Math.hypot( dx, dy );
+    this.direction = { x: dx / dist, y: dy / dist };
 
     this.model = AssetManager.getModel();
     this.model.scale.set( 1.5, 1.5, 1.5 );
     this.model.position.set( this.position.x, 0, this.position.y );
-    const texture = AssetManager.getTexture( "purple" );
 
+    const texture = AssetManager.getTexture( "purple" );
     this.model.traverse( ( child: any ) =>
     {
       if ( child.isMesh )
@@ -48,35 +52,18 @@ export class Enemy
     }
   }
 
-  public setTarget( x: number, y: number )
-  {
-    this.target.x = x;
-    this.target.y = y;
-  }
-
   update( deltaTime: number ): void
   {
     if ( !this.model ) return;
 
-    const dx = this.target.x - this.position.x;
-    const dy = this.target.y - this.position.y;
-    const dist = Math.hypot( dx, dy );
+    this.position.x += this.direction.x * this.speed * deltaTime;
+    this.position.y += this.direction.y * this.speed * deltaTime;
 
-    if ( dist > 0.5 )
-    {
-      const dir_x = dx / dist;
-      const dir_y = dy / dist;
+    this.model.position.set( this.position.x, 0, this.position.y );
 
-      this.position.x += dir_x * this.speed * deltaTime;
-      this.position.y += dir_y * this.speed * deltaTime;
-
-      this.model.position.set( this.position.x, 0, this.position.y );
-
-      const angle = Math.atan2( dx, dy );
-      this.model.rotation.y = angle;
-
-      this.playAnimation( "Walk" );
-    }
+    // ворог повертається в напрямку руху
+    const angle = Math.atan2( this.direction.x, this.direction.y );
+    this.model.rotation.y = angle;
 
     if ( this.mixer ) this.mixer.update( deltaTime );
   }

@@ -16,6 +16,8 @@ export class Player implements GameObject
   private actions: Record<string, THREE.AnimationAction> = {};
   private current_action?: THREE.AnimationAction;
 
+  private is_dead: boolean = false;
+
   constructor( scene: THREE.Scene )
   {
     this.model = AssetManager.getModel();
@@ -33,14 +35,43 @@ export class Player implements GameObject
     }
   }
 
+  playLoseAnimation()
+  {
+    this.is_dead = true;
+    if ( !this.mixer ) return;
+
+    const key = Object.keys( this.actions ).find( k => k.toLowerCase().includes( "lose" ) );
+    if ( !key ) return;
+
+    const action = this.actions[key];
+
+    action.reset()
+      .setLoop( THREE.LoopOnce, 1 )
+      .clampWhenFinished = true;
+    action.fadeIn( 0.2 ).play();
+
+    if ( this.current_action === action ) return;
+
+    if ( this.current_action ) this.current_action.fadeOut( 0.3 );
+
+    this.current_action = action;
+    this.current_action.reset().fadeIn( 0.3 ).play();
+  }
+
   setTarget( x: number, y: number )
   {
     this.target = { x, y };
   }
 
-  update( deltaTime: number ): void
+  update( delta_time: number ): void
   {
     if ( !this.model ) return;
+
+    if ( this.is_dead )
+    {
+      if ( this.mixer ) this.mixer.update( delta_time );
+      return;
+    }
 
     const dx = this.target.x - this.position.x;
     const dy = this.target.y - this.position.y;
@@ -65,15 +96,15 @@ export class Player implements GameObject
       }
     }
 
-    if ( this.mixer ) this.mixer.update( deltaTime );
+    if ( this.mixer ) this.mixer.update( delta_time );
   }
 
-  playAnimation( partialName: string )
+  playAnimation( partial_name: string )
   {
     if ( !this.mixer ) return;
 
     const key = Object.keys( this.actions ).find( k =>
-      k.toLowerCase().includes( partialName.toLowerCase() )
+      k.toLowerCase().includes( partial_name.toLowerCase() )
     );
     if ( !key ) return;
 
@@ -81,6 +112,7 @@ export class Player implements GameObject
     if ( this.current_action === action ) return;
 
     if ( this.current_action ) this.current_action.fadeOut( 0.3 );
+
     this.current_action = action;
     this.current_action.reset().fadeIn( 0.3 ).play();
   }

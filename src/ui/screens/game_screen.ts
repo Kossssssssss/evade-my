@@ -14,6 +14,7 @@ export class GameScreen
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private screen_manager: ScreenManager;
+  private is_losing: boolean = false;
 
   private player!: Player;
   private enemies: Enemy[] = [];
@@ -208,7 +209,7 @@ export class GameScreen
 
     for ( const enemy of this.enemies )
     {
-      enemy.setTarget( this.player.position.x, this.player.position.y );
+      // enemy.setTarget( this.player.position.x, this.player.position.y );
       enemy.update( dt );
     }
 
@@ -250,10 +251,15 @@ export class GameScreen
       return true;
     } );
 
-    if ( this.lives <= 0 )
+    if ( this.lives <= 0 && !this.is_losing )
     {
-      this.destroy();
-      this.screen_manager.showScreen( 'results' );
+      this.is_losing = true;
+      this.player.playLoseAnimation();
+      setTimeout( () =>
+      {
+        this.destroy();
+        this.screen_manager.showScreen( 'results' );
+      }, 2000 );
       return;
     }
 
@@ -355,13 +361,44 @@ export class GameScreen
 
   private spawnEnemy(): void
   {
-    const x = ( Math.random() - 0.5 ) * 100;
-    const y = ( Math.random() - 0.5 ) * 100;
+    const left = this.camera.left;
+    const right = this.camera.right;
+    const top = this.camera.top;
+    const bottom = this.camera.bottom;
 
+    let x = 0, y = 0;
 
-    const enemy = new Enemy( this.scene, { x, y } );
+    const side = Math.floor( Math.random() * 4 );
+    const margin = 5;
+
+    switch ( side )
+    {
+      case 0: // left
+        x = left - margin; // за межами
+        y = ( Math.random() * ( top - bottom ) ) + bottom;
+        break;
+      case 1: // right
+        x = right + margin;
+        y = ( Math.random() * ( top - bottom ) ) + bottom;
+        break;
+      case 2: // top
+        x = ( Math.random() * ( right - left ) ) + left;
+        y = top + margin;
+        break;
+      case 3: // bottom
+        x = ( Math.random() * ( right - left ) ) + left;
+        y = bottom - margin;
+        break;
+    }
+
+    const target_x = ( Math.random() * ( right - left ) ) + left;
+    const target_y = ( Math.random() * ( top - bottom ) ) + bottom;
+
+    const enemy = new Enemy( this.scene, { x, y }, { x: target_x, y: target_y } );
+
     this.enemies.push( enemy );
   }
+
   private handlePointerMove = ( ev: PointerEvent ): void =>
   {
     const rect = this.canvas.getBoundingClientRect();
