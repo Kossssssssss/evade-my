@@ -41,12 +41,9 @@ export class GameScreen
 
   private wave_controller!: WaveController;
 
-  private use_images: boolean = false;
-
   private renderer!: THREE.WebGLRenderer;
   private scene!: THREE.Scene;
   private camera!: THREE.OrthographicCamera;
-  private loader!: GLTFLoader;
 
   private raycaster = new THREE.Raycaster();
   private ground_plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // площина y=0
@@ -66,7 +63,6 @@ export class GameScreen
   {
     this.location_index = location_index;
     this.use_joystick = use_joystick;
-    this.use_images = use_images;
 
     const config = locations[location_index];
     this.spawn_interval = 1 / config.spawn_rate;
@@ -131,8 +127,6 @@ export class GameScreen
     const light = new THREE.DirectionalLight( 0xffffff, 1 );
     light.position.set( 5, 10, 5 );
     this.scene.add( light );
-
-    this.loader = new GLTFLoader();
 
     this.player = new Player( this.scene );
 
@@ -277,16 +271,16 @@ export class GameScreen
       }, 2000 );
       return;
     }
-
     if ( this.use_joystick && this.joystick )
     {
       const dir = this.joystick.getDirection();
-      this.player.position.x += dir.x * this.player_speed * dt * 0.5;
-      this.player.position.y += dir.y * this.player_speed * dt * 0.5;
 
       if ( dir.x !== 0 || dir.y !== 0 )
       {
-        this.player.playAnimation( "Walk" );
+        const target_x = this.player.position.x + dir.x * this.player_speed * dt;
+        const target_y = this.player.position.y + dir.y * this.player_speed * dt;
+
+        this.player.setTarget( target_x, target_y );
       }
     }
 
@@ -360,11 +354,9 @@ export class GameScreen
   {
     this.running = false;
 
-    // 1. Прибрати listener
     this.canvas.removeEventListener( 'pointermove', this.handlePointerMove );
     this.joystick = undefined;
 
-    // 2. Видалити ворогів
     for ( const enemy of this.enemies )
     {
       if ( enemy.model )
@@ -388,7 +380,6 @@ export class GameScreen
     }
     this.enemies = [];
 
-    // 3. Видалити falling items (якщо вони мають mesh)
     for ( const item of this.falling_items )
     {
       if ( ( item as any ).model )
@@ -398,7 +389,6 @@ export class GameScreen
     }
     this.falling_items = [];
 
-    // 4. Видалити гравця
     if ( this.player.model )
     {
       this.scene.remove( this.player.model );
@@ -439,7 +429,6 @@ export class GameScreen
       } );
     }
 
-    // 6. Очистити renderer (опційно)
     this.renderer.dispose();
   }
 
@@ -452,6 +441,11 @@ export class GameScreen
     this.ctx.font = '20px Arial';
     this.ctx.fillText( `Score: ${Math.floor( this.score )}`, 10, 30 );
     this.ctx.fillText( `Lives: ${this.lives}`, 10, 60 );
+
+    if ( this.use_joystick && this.joystick )
+    {
+      this.joystick.draw( this.ctx );
+    }
   }
 
   private spawnEnemy(): void
