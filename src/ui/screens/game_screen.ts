@@ -87,6 +87,7 @@ export class GameScreen
       console.log( "✅ Assets loaded!" );
     }
 
+    this.is_losing = false;
     this.running = true;
     this.score = 0;
     this.enemies = [];
