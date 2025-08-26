@@ -5,6 +5,9 @@ import { Joystick } from '../../joystick.js';
 import { locations } from '../../configs/location_config.js';
 import { FallingItem } from '../../entities/falling_item.js';
 import { WaveController } from '../../wave_controller.js';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { AssetManager } from '../../assets_manager.js';
 
 export class GameScreen
 {
@@ -38,13 +41,23 @@ export class GameScreen
 
   private use_images: boolean = false;
 
-  public constructor( canvas: HTMLCanvasElement, screen_manager: ScreenManager )
+  private renderer!: THREE.WebGLRenderer;
+  private scene!: THREE.Scene;
+  private camera!: THREE.OrthographicCamera;
+  private loader!: GLTFLoader;
+
+  private raycaster = new THREE.Raycaster();
+  private mouse = new THREE.Vector2();
+
+  private hud_canvas: HTMLCanvasElement;
+
+  constructor( canvas: HTMLCanvasElement, screen_manager: ScreenManager )
   {
     this.canvas = canvas;
-    this.ctx = canvas.getContext( '2d' )!;
+    this.hud_canvas = document.getElementById( 'hudCanvas' ) as HTMLCanvasElement;
+    this.ctx = this.hud_canvas.getContext( '2d' )!;
     this.screen_manager = screen_manager;
   }
-
   public setConfig( location_index: number, use_joystick: boolean, use_images: boolean ): void
   {
     this.location_index = location_index;
@@ -57,21 +70,60 @@ export class GameScreen
     this.score_point = config.score_point;
   }
 
-  public init(): void
+  public async init(): Promise<void>
   {
-    this.player = new Player( this.use_images );
-
     this.running = true;
     this.score = 0;
     this.enemies = [];
     this.lives = 3;
     this.last_spawn_time = performance.now() / 1000;
-    this.player.position = {
-      x: this.canvas.width / 2,
-      y: this.canvas.height / 2
-    };
-    this.wave_controller = new WaveController( 5, 15, 8 );
 
+    this.wave_controller = new WaveController( 5, 15, 8 );
+    await AssetManager.loadAll();
+    this.renderer = new THREE.WebGLRenderer( { canvas: this.canvas } );
+    this.renderer.setSize( this.canvas.width, this.canvas.height );
+
+    this.renderer.setViewport( 0, 0, window.innerWidth, window.innerHeight );
+    this.renderer.setScissor( 0, 0, window.innerWidth, window.innerHeight );
+    this.renderer.setScissorTest( true );
+
+    this.scene = new THREE.Scene();
+    const aspect = this.canvas.width / this.canvas.height;
+    const d = 10;
+
+    this.camera = new THREE.OrthographicCamera(
+      -d * aspect, d * aspect,
+      d, -d,
+      0.1, 1000
+    );
+
+    this.camera.position.set( 20, 20, 20 );
+    this.camera.lookAt( 0, 0, 0 );
+    const groundGeometry = new THREE.PlaneGeometry( 2000, 2000 );
+    const groundMaterial = new THREE.MeshStandardMaterial( {
+      color: 0x225522,
+      roughness: 1,
+      metalness: 0
+    } );
+    const ground = new THREE.Mesh( groundGeometry, groundMaterial );
+
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = 0;
+    ground.receiveShadow = true;
+    this.scene.add( ground );
+
+    const light = new THREE.DirectionalLight( 0xffffff, 1 );
+    light.position.set( 5, 10, 5 );
+    this.scene.add( light );
+
+    this.loader = new GLTFLoader();
+
+    this.player = new Player( this.scene );
+
+    this.player.position = {
+      x: 0,
+      y: 0
+    };
 
     if ( this.use_joystick )
     {
@@ -98,15 +150,17 @@ export class GameScreen
     requestAnimationFrame( this.loop );
   };
 
-  private onWaveEnd(): void
-  {
-    this.enemies = [];
-  }
+  // private onWaveEnd(): void
+  // {
+  //   this.enemies = [];
+  // }
 
   private update( dt: number ): void
   {
     const now = performance.now() / 1000;
     this.wave_controller.update( dt );
+
+    this.player.update( dt );
 
     if ( this.wave_controller.inWave() )
     {
@@ -121,7 +175,7 @@ export class GameScreen
     {
       if ( now - this.last_item_spawn >= this.item_spawn_interval / 4 )
       {
-        const num_items = 5; 
+        const num_items = 5;
         for ( let i = 0; i < num_items; i++ )
         {
           this.spawnFallingItem( true );
@@ -154,6 +208,7 @@ export class GameScreen
 
     for ( const enemy of this.enemies )
     {
+      enemy.setTarget( this.player.position.x, this.player.position.y );
       enemy.update( dt );
     }
 
@@ -162,9 +217,37 @@ export class GameScreen
       const dx = this.player.position.x - enemy.position.x;
       const dy = this.player.position.y - enemy.position.y;
       const dist = Math.hypot( dx, dy );
+
       const collided = dist < this.player.radius + enemy.radius;
-      if ( collided ) this.lives--;
-      return !collided;
+
+      if ( collided )
+      {
+        this.lives--;
+        console.log( "Player hit! Lives:", this.lives );
+
+        if ( enemy.model )
+        {
+          this.scene.remove( enemy.model );
+          enemy.model.traverse( ( child: any ) =>
+          {
+            if ( child.geometry ) child.geometry.dispose();
+            if ( child.material )
+            {
+              if ( Array.isArray( child.material ) )
+              {
+                child.material.forEach( ( m: THREE.Material ) => m.dispose() );
+              } else
+              {
+                child.material.dispose();
+              }
+            }
+          } );
+        }
+
+        return false;
+      }
+
+      return true;
     } );
 
     if ( this.lives <= 0 )
@@ -180,8 +263,10 @@ export class GameScreen
       this.player.position.x += dir.x * this.player_speed * dt * 0.5;
       this.player.position.y += dir.y * this.player_speed * dt * 0.5;
 
-      this.player.position.x = Math.max( this.player.radius, Math.min( this.canvas.width - this.player.radius, this.player.position.x ) );
-      this.player.position.y = Math.max( this.player.radius, Math.min( this.canvas.height - this.player.radius, this.player.position.y ) );
+      if ( dir.x !== 0 || dir.y !== 0 )
+      {
+        this.player.playAnimation( "Walk" );
+      }
     }
 
     if ( this.wave_controller.isFinished() )
@@ -193,10 +278,10 @@ export class GameScreen
 
     const is_paused = this.wave_controller.isPaused();
 
-    if ( is_paused )
-    {
-      this.onWaveEnd();
-    }
+    // if ( is_paused )
+    // {
+    //   this.onWaveEnd();
+    // }
   }
 
   private spawnFallingItem( from_sides: boolean = false ): void
@@ -243,7 +328,7 @@ export class GameScreen
       x = Math.random() * ( this.canvas.width - 20 ) + 10;
       y = -10;
       vx = 0;
-      vy = 150; 
+      vy = 150;
     }
 
     const item = new FallingItem( x, y, vx, vy );
@@ -259,104 +344,40 @@ export class GameScreen
 
   private draw(): void
   {
-    this.ctx.fillStyle = '#222';
-    this.ctx.fillRect( 0, 0, this.canvas.width, this.canvas.height );
+    this.renderer.render( this.scene, this.camera );
 
-    this.player.draw( this.ctx );
-    for ( const enemy of this.enemies )
-    {
-      enemy.draw( this.ctx );
-    }
-
-    for ( const item of this.falling_items )
-    {
-      item.draw( this.ctx );
-    }
-
+    this.ctx.clearRect( 0, 0, this.hud_canvas.width, this.hud_canvas.height );
     this.ctx.fillStyle = 'white';
     this.ctx.font = '20px Arial';
     this.ctx.fillText( `Score: ${Math.floor( this.score )}`, 10, 30 );
     this.ctx.fillText( `Lives: ${this.lives}`, 10, 60 );
-
-    if ( this.use_joystick && this.joystick )
-    {
-      this.joystick.draw( this.ctx );
-    }
-
-    this.ctx.fillStyle = 'white';
-    this.ctx.font = '20px Arial';
-    this.ctx.fillText(
-      `Wave: ${this.wave_controller.getCurrentWave()} / ${this.wave_controller.getTotalWaves()}`,
-      10,
-      90
-    );
-
-    if ( this.wave_controller.inWave() )
-    {
-      this.ctx.fillText(
-        `Time left: ${this.wave_controller.getTimer().toFixed( 1 )}s`,
-        10,
-        120
-      );
-    } else if (
-      this.wave_controller.isPaused() &&
-      this.wave_controller.getCurrentWave() < this.wave_controller.getTotalWaves()
-    )
-    {
-      // показуємо таймер лише якщо ще БУДЕ наступна хвиля
-      this.ctx.fillStyle = 'yellow';
-      this.ctx.font = '24px Arial';
-      this.ctx.fillText(
-        `Next wave in: ${Math.ceil( this.wave_controller.getTimer() )}s`,
-        this.canvas.width / 2 - 100,
-        100
-      );
-    }
-
-    if ( this.wave_controller.isCollecting() )
-    {
-      this.ctx.fillStyle = 'cyan';
-      this.ctx.font = '22px Arial';
-      this.ctx.fillText(
-        `Collect Bonus! Time left: ${this.wave_controller.getTimer().toFixed( 1 )}s`,
-        this.canvas.width / 2 - 120,
-        160
-      );
-    }
   }
 
   private spawnEnemy(): void
   {
-    const side = Math.floor( Math.random() * 4 );
-    const radius = 20;
-    let x = 0, y = 0;
+    const x = ( Math.random() - 0.5 ) * 100;
+    const y = ( Math.random() - 0.5 ) * 100;
 
-    switch ( side )
-    {
-      case 0: y = -radius; x = Math.random() * this.canvas.width; break; // top
-      case 1: y = this.canvas.height + radius; x = Math.random() * this.canvas.width; break; // bottom
-      case 2: x = -radius; y = Math.random() * this.canvas.height; break; // left
-      case 3: x = this.canvas.width + radius; y = Math.random() * this.canvas.height; break; // right
-    }
 
-    const dx = this.player.position.x - x;
-    const dy = this.player.position.y - y;
-    const len = Math.hypot( dx, dy ) || 1;
-    const speed = this.enemy_speed;
-    const vx = ( dx / len ) * speed;
-    const vy = ( dy / len ) * speed;
-
-    const enemy = new Enemy( { x, y }, { x: vx, y: vy }, this.use_images );
+    const enemy = new Enemy( this.scene, { x, y } );
     this.enemies.push( enemy );
   }
-
   private handlePointerMove = ( ev: PointerEvent ): void =>
   {
-    ev.preventDefault();
-
     const rect = this.canvas.getBoundingClientRect();
-    const x = ev.clientX - rect.left;
-    const y = ev.clientY - rect.top;
-    this.player.position = { x, y };
+    const mouse_x = ( ( ev.clientX - rect.left ) / rect.width ) * 2 - 1;
+    const mouse_y = -( ( ev.clientY - rect.top ) / rect.height ) * 2 + 1;
+
+    this.mouse.x = mouse_x;
+    this.mouse.y = mouse_y;
+
+    this.raycaster.setFromCamera( this.mouse, this.camera );
+    const intersects = this.raycaster.intersectObjects( this.scene.children, true );
+
+    if ( intersects.length > 0 )
+    {
+      const point = intersects[0].point;
+      this.player.setTarget( point.x, point.z );
+    }
   };
 }

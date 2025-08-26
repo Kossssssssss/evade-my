@@ -1,52 +1,100 @@
-import { Vector2, GameObject } from '../types/main.js';
+import * as THREE from 'three';
+import { AssetManager } from '../assets_manager';
 
-export class Enemy implements GameObject
+export class Enemy
 {
-  position: Vector2;
-  velocity: Vector2;
-  radius: number = 15;
-  image?: HTMLImageElement;
-  use_image: boolean;
+  public position: { x: number, y: number };
+  public radius: number = 0.5;
 
-  constructor( position: Vector2, velocity: Vector2, use_image: boolean, image?: HTMLImageElement )
+  private speed: number = 2;
+  private target: { x: number, y: number };
+
+  public model?: THREE.Object3D;
+  private mixer?: THREE.AnimationMixer;
+  private actions: Record<string, THREE.AnimationAction> = {};
+  private current_action?: THREE.AnimationAction;
+
+  constructor( scene: THREE.Scene, startPos: { x: number, y: number } )
   {
-    this.position = position;
-    this.velocity = velocity;
-    this.image = image;
-    this.radius = 20;
-    this.use_image = use_image;
+    this.position = { ...startPos };
+    this.target = { ...startPos };
 
-    if ( this.use_image )
+    this.model = AssetManager.getModel();
+    this.model.scale.set( 1.5, 1.5, 1.5 );
+    this.model.position.set( this.position.x, 0, this.position.y );
+    const texture = AssetManager.getTexture( "purple" );
+
+    this.model.traverse( ( child: any ) =>
     {
-      this.image = new Image();
-      this.image.src = 'assets/enemy.png';
+      if ( child.isMesh )
+      {
+        child.material = new THREE.MeshStandardMaterial( {
+          map: texture,
+        } );
+      }
+    } );
+
+    scene.add( this.model );
+
+    const animations = AssetManager.getAnimations();
+    if ( animations.length > 0 )
+    {
+      this.mixer = new THREE.AnimationMixer( this.model );
+      for ( const clip of animations )
+      {
+        this.actions[clip.name] = this.mixer.clipAction( clip );
+      }
+      this.playAnimation( "Walk" );
     }
+  }
+
+  public setTarget( x: number, y: number )
+  {
+    this.target.x = x;
+    this.target.y = y;
   }
 
   update( deltaTime: number ): void
   {
-    this.position.x += this.velocity.x * deltaTime;
-    this.position.y += this.velocity.y * deltaTime;
-  }
+    if ( !this.model ) return;
 
-  draw( ctx: CanvasRenderingContext2D ): void
-  {
-    if ( this.image )
+    const dx = this.target.x - this.position.x;
+    const dy = this.target.y - this.position.y;
+    const dist = Math.hypot( dx, dy );
+
+    if ( dist > 0.5 )
     {
-      const size = this.radius * 2;
-      ctx.drawImage( this.image, this.position.x - this.radius, this.position.y - this.radius, size, size );
-    } else
-    {
-      ctx.beginPath();
-      ctx.arc( this.position.x, this.position.y, this.radius, 0, Math.PI * 2 );
-      ctx.fillStyle = 'red';
-      ctx.fill();
+      const dir_x = dx / dist;
+      const dir_y = dy / dist;
+
+      this.position.x += dir_x * this.speed * deltaTime;
+      this.position.y += dir_y * this.speed * deltaTime;
+
+      this.model.position.set( this.position.x, 0, this.position.y );
+
+      const angle = Math.atan2( dx, dy );
+      this.model.rotation.y = angle;
+
+      this.playAnimation( "Walk" );
     }
+
+    if ( this.mixer ) this.mixer.update( deltaTime );
   }
 
-  isOffScreen( width: number, height: number ): boolean
+  private playAnimation( partialName: string )
   {
-    return this.position.x < -this.radius || this.position.x > width + this.radius ||
-      this.position.y < -this.radius || this.position.y > height + this.radius;
+    if ( !this.mixer ) return;
+
+    const key = Object.keys( this.actions ).find( k =>
+      k.toLowerCase().includes( partialName.toLowerCase() )
+    );
+    if ( !key ) return;
+
+    const action = this.actions[key];
+    if ( this.current_action === action ) return;
+
+    if ( this.current_action ) this.current_action.fadeOut( 0.3 );
+    this.current_action = action;
+    this.current_action.reset().fadeIn( 0.3 ).play();
   }
 }

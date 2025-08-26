@@ -34,7 +34,7 @@ export class MenuScreen
 
   private createButtons(): void
   {
-    const centerX = this.canvas.width / 2;
+    const center_x = this.canvas.width / 2;
 
     this.buttons = [];
 
@@ -44,7 +44,7 @@ export class MenuScreen
         new TextButton(
           this.ctx,
           loc.name,
-          centerX,
+          center_x,
           200 + i * 60,
           "24px Arial",
           "white",
@@ -57,7 +57,7 @@ export class MenuScreen
       new TextButton(
         this.ctx,
         `Use Joystick: ${this.use_joystick ? "Yes" : "No"}`,
-        centerX,
+        center_x,
         300 + locations.length * 60,
         "24px Arial",
         "white",
@@ -73,7 +73,7 @@ export class MenuScreen
       new TextButton(
         this.ctx,
         `Use Images: ${this.use_images ? "Yes" : "No"}`,
-        centerX,
+        center_x,
         350 + locations.length * 60,
         "24px Arial",
         "white",
