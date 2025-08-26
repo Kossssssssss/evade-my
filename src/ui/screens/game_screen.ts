@@ -49,6 +49,8 @@ export class GameScreen
   private loader!: GLTFLoader;
 
   private raycaster = new THREE.Raycaster();
+  private ground_plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // площина y=0
+  private plane_intersect = new THREE.Vector3();
   private mouse = new THREE.Vector2();
 
   private hud_canvas: HTMLCanvasElement;
@@ -501,12 +503,10 @@ export class GameScreen
     this.mouse.y = mouse_y;
 
     this.raycaster.setFromCamera( this.mouse, this.camera );
-    const intersects = this.raycaster.intersectObjects( this.scene.children, true );
 
-    if ( intersects.length > 0 )
+    if ( this.raycaster.ray.intersectPlane( this.ground_plane, this.plane_intersect ) )
     {
-      const point = intersects[0].point;
-      this.player.setTarget( point.x, point.z );
+      this.player.setTarget( this.plane_intersect.x, this.plane_intersect.z );
     }
   };
 }
