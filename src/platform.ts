@@ -11,27 +11,28 @@ export class Platform implements PlatformAPI {
 
   constructor()
   {
-    this.isTelegram = !!( window.Telegram && window.Telegram.WebApp );
-    this.webapp = this.isTelegram ? window.Telegram.WebApp : null;
+    this.isTelegram = typeof window !== "undefined" && !!( window as any ).Telegram?.WebApp;
+    this.webapp = this.isTelegram ? ( window as any ).Telegram.WebApp : null;
 
     if ( this.isTelegram )
     {
+      console.log('webapp ready');
       this.webapp.ready();
 
       this.webapp.expand();
       this.webapp.setHeaderColor( "bg_color" );
       this.webapp.setBackgroundColor( "#000000" );
       this.webapp.disableVerticalSwipes();
+
+      if ( this.webapp.setSettings )
+      {
+        console.log('disable vertical swipes');
+        this.webapp.setSettings( { allow_vertical_swipe: false } );
+      }
     }
   }
   onStart(cb: () => void) {
-    if (this.isTelegram) {
-      this.webapp.MainButton.setText("🚀 Старт");
-      this.webapp.MainButton.show();
-      this.webapp.MainButton.onClick(cb);
-    } else {
-      cb();
-    }
+    cb();
   }
 
   onBack(cb: () => void) {
