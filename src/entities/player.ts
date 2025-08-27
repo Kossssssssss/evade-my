@@ -132,8 +132,6 @@ export class Player implements GameObject
     const dy = this.target.y - this.position.y;
     const dist = Math.hypot( dx, dy );
 
-    console.log('dist', dist);
-
     this.velocity = { x: dx, y: dy };
 
     if ( dist > 0.5 )
@@ -151,7 +149,6 @@ export class Player implements GameObject
       let animation_speed = velocity_magnitude / base_speed * 2;
 
       animation_speed = Math.max( 1, Math.min( 4, animation_speed ) );
-      console.log( 'animation_speed', animation_speed );
       this.playAnimation( "Walk", animation_speed );
     } else
     {

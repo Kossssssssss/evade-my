@@ -189,10 +189,33 @@ export class GameScreen
     requestAnimationFrame( this.loop );
   };
 
-  // private onWaveEnd(): void
-  // {
-  //   this.enemies = [];
-  // }
+  private onWaveEnd(): void
+  {
+    for ( const enemy of this.enemies )
+    {
+      if ( enemy.model )
+      {
+        this.scene.remove( enemy.model );
+
+        enemy.model.traverse( ( child: any ) =>
+        {
+          if ( child.geometry ) child.geometry.dispose();
+          if ( child.material )
+          {
+            if ( Array.isArray( child.material ) )
+            {
+              child.material.forEach( ( m: THREE.Material ) => m.dispose() );
+            } else
+            {
+              child.material.dispose();
+            }
+          }
+        } );
+      }
+    }
+
+    this.enemies = [];
+  }
 
   private update( dt: number ): void
   {
@@ -325,10 +348,10 @@ export class GameScreen
 
     const is_paused = this.wave_controller.isPaused();
 
-    // if ( is_paused )
-    // {
-    //   this.onWaveEnd();
-    // }
+    if ( is_paused )
+    {
+      this.onWaveEnd();
+    }
   }
 
   private spawnFallingItem( from_sides: boolean = false ): void
@@ -473,6 +496,14 @@ export class GameScreen
     this.ctx.font = '20px Arial';
     this.ctx.fillText( `Score: ${Math.floor( this.score )}`, 10, 30 );
     this.ctx.fillText( `Lives: ${this.lives}`, 10, 60 );
+    this.ctx.fillText(
+      `Wave: ${this.wave_controller.getCurrentWave()} / ${this.wave_controller.getTotalWaves()}`,
+      10, 90
+    );
+    this.ctx.fillText(
+      `Time left: ${Math.ceil( this.wave_controller.getTimer() )}`,
+      10, 120
+    );
 
     if ( this.use_joystick && this.joystick )
     {
