@@ -31,7 +31,7 @@ export class GameScreen
   private use_joystick: boolean = false;
 
   private joystick?: Joystick;
-  private player_speed: number = 140;
+  private player_speed: number = 300;
 
   private score_point: number = 10;
 
@@ -175,11 +175,16 @@ export class GameScreen
     this.enemies.splice( this.enemies.indexOf( enemy ), 1 );
   }
 
+  private last_time = performance.now();
   private loop = (): void =>
   {
     if ( !this.running ) return;
 
-    this.update( 1 / 60 );
+    const now = performance.now();
+    const dt = ( now - this.last_time ) / 1000; // секунди
+    this.last_time = now;
+
+    this.update( dt );
     this.draw();
     requestAnimationFrame( this.loop );
   };
@@ -225,20 +230,20 @@ export class GameScreen
       }
     }
 
-    for ( const item of this.falling_items )
-    {
-      item.update( dt );
-    }
+    // for ( const item of this.falling_items )
+    // {
+    //   item.update( dt );
+    // }
 
-    this.falling_items = this.falling_items.filter( item =>
-    {
-      const dx = item.position.x - this.player.position.x;
-      const dy = item.position.y - this.player.position.y;
-      const dist = Math.hypot( dx, dy );
-      const caught = dist < item.radius + this.player.radius;
-      if ( caught ) this.score += this.score_point;
-      return !caught && item.position.y < this.canvas.height + item.radius;
-    } );
+    // this.falling_items = this.falling_items.filter( item =>
+    // {
+    //   const dx = item.position.x - this.player.position.x;
+    //   const dy = item.position.y - this.player.position.y;
+    //   const dist = Math.hypot( dx, dy );
+    //   const caught = dist < item.radius + this.player.radius;
+    //   if ( caught ) this.score += this.score_point;
+    //   return !caught && item.position.y < this.canvas.height + item.radius;
+    // } );
 
     for ( const enemy of this.enemies )
     {
@@ -296,8 +301,16 @@ export class GameScreen
 
       if ( dir.x !== 0 || dir.y !== 0 )
       {
-        const target_x = this.player.position.x + dir.x * this.player_speed * dt;
-        const target_y = this.player.position.y + dir.y * this.player_speed * dt;
+        const len = Math.hypot( dir.x, dir.y );
+        const nx = dir.x / len;
+        const ny = dir.y / len;
+
+        const strength = Math.min( len, 1 );
+
+        const step = this.player_speed * dt * strength;
+
+        const target_x = this.player.position.x + nx * step;
+        const target_y = this.player.position.y + ny * step;
 
         this.player.setTarget( target_x, target_y );
       }

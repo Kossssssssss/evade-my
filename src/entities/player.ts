@@ -6,7 +6,7 @@ export class Player implements GameObject
 {
   position: Vector2 = { x: 0, y: 0 };
   velocity: Vector2 = { x: 0, y: 0 };
-  radius: number = 0.5;
+  radius: number = 0.8;
 
   private speed: number = 4;
   private target: Vector2 = { x: 0, y: 0 };
@@ -131,6 +131,8 @@ export class Player implements GameObject
     const dx = this.target.x - this.position.x;
     const dy = this.target.y - this.position.y;
     const dist = Math.hypot( dx, dy );
+
+    console.log('dist', dist);
 
     this.velocity = { x: dx, y: dy };
 

@@ -4,7 +4,7 @@ import { AssetManager } from '../assets_manager';
 export class Enemy
 {
   public position: { x: number, y: number };
-  public radius: number = 0.5;
+  public radius: number = 0.8;
 
   private speed: number = 2;
   private direction: { x: number, y: number }; // напрямок руху
