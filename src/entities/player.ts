@@ -16,7 +16,9 @@ export class Player implements GameObject
   private actions: Record<string, THREE.AnimationAction> = {};
   private current_action?: THREE.AnimationAction;
 
-  private is_dead: boolean = false;
+  private is_dead:   boolean = false;
+  private is_hit:    boolean = false;
+  private is_frozen: boolean = false;
 
   constructor( scene: THREE.Scene )
   {
@@ -35,7 +37,55 @@ export class Player implements GameObject
     }
   }
 
-  playLoseAnimation()
+  public stopAnimation()
+  {
+    if ( !this.mixer ) return;
+    
+    if ( this.current_action )
+    {
+      this.current_action.stop();
+    }
+  }
+
+  public freeze()
+  {
+    this.is_frozen = true;
+  }
+
+  public unfreeze()
+  {
+    this.is_frozen = false;
+  }
+
+  public playHitAnimation()
+  {
+    this.is_hit = true;
+    if ( !this.mixer ) return;
+    const key = Object.keys( this.actions ).find( k => k.toLowerCase().includes( "hit" ) );
+    if ( !key ) return;
+
+    const action = this.actions[key];
+    if ( this.current_action ) this.current_action.fadeOut( 0.2 );
+
+    this.current_action = action;
+    this.current_action.reset()
+      .setLoop( THREE.LoopOnce, 1 )
+      .play()
+      .clampWhenFinished = true
+
+    this.current_action.timeScale = 1; // трохи швидше
+
+    this.mixer.addEventListener( "finished", ( e ) =>
+    {
+      if ( e.action === this.current_action )
+      {
+        this.is_hit = false;
+        console.log( "hit animation finished, is_hit =", this.is_hit );
+      }
+    } );
+  }
+
+  public playLoseAnimation()
   {
     this.is_dead = true;
     if ( !this.mixer ) return;
@@ -45,17 +95,20 @@ export class Player implements GameObject
 
     const action = this.actions[key];
 
-    action.reset()
-      .setLoop( THREE.LoopOnce, 1 )
-      .clampWhenFinished = true;
-    action.fadeIn( 0.2 ).play();
-
-    if ( this.current_action === action ) return;
-
-    if ( this.current_action ) this.current_action.fadeOut( 0.3 );
+    if ( this.current_action )
+    {
+      this.current_action.stop();
+    }
 
     this.current_action = action;
-    this.current_action.reset().fadeIn( 0.3 ).play();
+    this.current_action.reset()
+      .setLoop( THREE.LoopOnce, 1 )
+      .play();
+
+    this.current_action.clampWhenFinished = true;
+    this.current_action.enabled = true;
+
+    this.current_action.timeScale = 1.0;
   }
 
   setTarget( x: number, y: number )
@@ -67,7 +120,7 @@ export class Player implements GameObject
   {
     if ( !this.model ) return;
 
-    if ( this.is_dead )
+    if ( this.is_dead || this.is_hit || this.is_frozen )
     {
       if ( this.mixer ) this.mixer.update( delta_time );
       return;
@@ -78,8 +131,8 @@ export class Player implements GameObject
     const dist = Math.hypot( dx, dy );
     if ( dist > 2 )
     {
-      this.position.x += dx * 0.01;
-      this.position.y += dy * 0.01;
+      this.position.x += dx * 0.01 * this.speed;
+      this.position.y += dy * 0.01 * this.speed;
 
       this.model.position.set( this.position.x, 0, this.position.y );
 
@@ -115,6 +168,14 @@ export class Player implements GameObject
 
     this.current_action = action;
     this.current_action.reset().fadeIn( 0.3 ).play();
+
+    if ( partial_name.toLowerCase().includes( "walk" ) )
+    {
+      this.current_action.timeScale = 5.0; // швидше
+    } else
+    {
+      this.current_action.timeScale = 1.0; // стандарт
+    }
   }
 
   draw(): void {}

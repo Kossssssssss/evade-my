@@ -31,7 +31,7 @@ export class GameScreen
   private use_joystick: boolean = false;
 
   private joystick?: Joystick;
-  private player_speed: number = 300;
+  private player_speed: number = 140;
 
   private score_point: number = 10;
 
@@ -151,6 +151,30 @@ export class GameScreen
     return Math.floor( this.score );
   }
 
+  private removeEnemy( enemy: Enemy ): void
+  {
+    if ( enemy.model )
+    {
+      this.scene.remove( enemy.model );
+      enemy.model.traverse( ( child: any ) =>
+      {
+        if ( child.geometry ) child.geometry.dispose();
+        if ( child.material )
+        {
+          if ( Array.isArray( child.material ) )
+          {
+            child.material.forEach( ( m: THREE.Material ) => m.dispose() );
+          } else
+          {
+            child.material.dispose();
+          }
+        }
+      } );
+    }
+
+    this.enemies.splice( this.enemies.indexOf( enemy ), 1 );
+  }
+
   private loop = (): void =>
   {
     if ( !this.running ) return;
@@ -222,8 +246,10 @@ export class GameScreen
       enemy.update( dt );
     }
 
-    this.enemies = this.enemies.filter( enemy =>
+    this.enemies.forEach( enemy =>
     {
+      if ( enemy.isAttacking() ) return;
+
       const dx = this.player.position.x - enemy.position.x;
       const dy = this.player.position.y - enemy.position.y;
       const dist = Math.hypot( dx, dy );
@@ -232,32 +258,25 @@ export class GameScreen
 
       if ( collided )
       {
+        this.player.freeze();
+        this.player.stopAnimation();
+
         this.lives--;
         console.log( "Player hit! Lives:", this.lives );
 
-        if ( enemy.model )
+        const onHit = () =>
         {
-          this.scene.remove( enemy.model );
-          enemy.model.traverse( ( child: any ) =>
-          {
-            if ( child.geometry ) child.geometry.dispose();
-            if ( child.material )
-            {
-              if ( Array.isArray( child.material ) )
-              {
-                child.material.forEach( ( m: THREE.Material ) => m.dispose() );
-              } else
-              {
-                child.material.dispose();
-              }
-            }
-          } );
+          if ( this.lives > 0 ) this.player.playHitAnimation();
         }
 
-        return false;
-      }
+        const onFinished = () =>
+        {
+          this.removeEnemy( enemy );
+          this.player.unfreeze();
+        }
 
-      return true;
+        enemy.playAttackAnimation( this.player.position, onHit, onFinished ); 
+      }
     } );
 
     if ( this.lives <= 0 && !this.is_losing )

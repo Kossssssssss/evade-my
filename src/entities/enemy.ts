@@ -14,6 +14,8 @@ export class Enemy
   private actions: Record<string, THREE.AnimationAction> = {};
   private current_action?: THREE.AnimationAction;
 
+  private is_attacking: boolean = false;
+
   constructor( scene: THREE.Scene, start_pos: { x: number, y: number }, target_pos: { x: number, y: number } )
   {
     this.position = { ...start_pos };
@@ -52,20 +54,74 @@ export class Enemy
     }
   }
 
-  update( deltaTime: number ): void
+  update( delta_time: number ): void
   {
     if ( !this.model ) return;
 
-    this.position.x += this.direction.x * this.speed * deltaTime;
-    this.position.y += this.direction.y * this.speed * deltaTime;
+    if ( this.is_attacking )
+    {
+      if ( this.mixer ) this.mixer.update( delta_time );
+      return; // не рухаємось під час атаки
+    }
+
+    this.position.x += this.direction.x * this.speed * delta_time;
+    this.position.y += this.direction.y * this.speed * delta_time;
 
     this.model.position.set( this.position.x, 0, this.position.y );
 
-    // ворог повертається в напрямку руху
     const angle = Math.atan2( this.direction.x, this.direction.y );
     this.model.rotation.y = angle;
 
-    if ( this.mixer ) this.mixer.update( deltaTime );
+    if ( this.mixer ) this.mixer.update( delta_time );
+  }
+
+  public isAttacking(): boolean
+  {
+    return this.is_attacking;
+  }
+
+  public playAttackAnimation( player_position: { x: number, y: number }, onHit?: () => void, onFinish?: () => void )
+  {
+    if ( !this.mixer || this.is_attacking ) return;
+    this.is_attacking = true;
+
+    const key = Object.keys( this.actions ).find( k => k.toLowerCase().includes( "attack1" ) );
+    if ( !key ) return;
+
+    if ( this.model )
+    {
+      const dx = player_position.x - this.position.x;
+      const dy = player_position.y - this.position.y;
+      const angle = Math.atan2( dx, dy );
+      this.model.rotation.y = angle;
+    }
+
+    const action = this.actions[key];
+    if ( this.current_action === action ) return;
+
+    if ( this.current_action ) this.current_action.fadeOut( 0.2 );
+
+    this.current_action = action;
+    this.current_action.reset()
+      .setLoop( THREE.LoopOnce, 1 )
+      .play()
+      .clampWhenFinished = true;
+
+    this.current_action.timeScale = 1.5;
+
+    const hitDelay = ( action.getClip().duration / this.current_action.timeScale ) * 0.3;
+    setTimeout( () =>
+    {
+      if ( onHit ) onHit();
+    }, hitDelay * 1000 );
+
+    this.mixer.addEventListener( "finished", ( e ) =>
+    {
+      if ( e.action === this.current_action )
+      {
+        if ( onFinish ) onFinish();
+      }
+    } );
   }
 
   private playAnimation( partialName: string )
