@@ -73,16 +73,18 @@ export class Player implements GameObject
       .play()
       .clampWhenFinished = true
 
-    this.current_action.timeScale = 1; // трохи швидше
+    this.current_action.timeScale = 1;
 
-    this.mixer.addEventListener( "finished", ( e ) =>
+    const onFinished = (e: { action: THREE.AnimationAction }) =>
     {
       if ( e.action === this.current_action )
       {
         this.is_hit = false;
         console.log( "hit animation finished, is_hit =", this.is_hit );
       }
-    } );
+    };
+    this.mixer.removeEventListener( "finished", onFinished );
+    this.mixer.addEventListener( "finished", onFinished );
   }
 
   public playLoseAnimation()
@@ -129,7 +131,10 @@ export class Player implements GameObject
     const dx = this.target.x - this.position.x;
     const dy = this.target.y - this.position.y;
     const dist = Math.hypot( dx, dy );
-    if ( dist > 2 )
+
+    this.velocity = { x: dx, y: dy };
+
+    if ( dist > 0.5 )
     {
       this.position.x += dx * 0.01 * this.speed;
       this.position.y += dy * 0.01 * this.speed;
@@ -139,7 +144,13 @@ export class Player implements GameObject
       const angle = Math.atan2( dx, dy );
       this.model.rotation.y = angle;
 
-      this.playAnimation( "Walk" );
+      const velocity_magnitude = Math.hypot( this.velocity.x, this.velocity.y );
+      const base_speed = this.speed;
+      let animation_speed = velocity_magnitude / base_speed * 2;
+
+      animation_speed = Math.max( 1, Math.min( 4, animation_speed ) );
+      console.log( 'animation_speed', animation_speed );
+      this.playAnimation( "Walk", animation_speed );
     } else
     {
       if ( this.current_action )
@@ -152,7 +163,7 @@ export class Player implements GameObject
     if ( this.mixer ) this.mixer.update( delta_time );
   }
 
-  playAnimation( partial_name: string )
+  playAnimation( partial_name: string, timeScale: number = 1.0 )
   {
     if ( !this.mixer ) return;
 
@@ -162,20 +173,15 @@ export class Player implements GameObject
     if ( !key ) return;
 
     const action = this.actions[key];
-    if ( this.current_action === action ) return;
+    if ( this.current_action === action ) {
+      this.current_action.timeScale = timeScale;
+      return;
+    }
 
     if ( this.current_action ) this.current_action.fadeOut( 0.3 );
 
     this.current_action = action;
     this.current_action.reset().fadeIn( 0.3 ).play();
-
-    if ( partial_name.toLowerCase().includes( "walk" ) )
-    {
-      this.current_action.timeScale = 5.0; // швидше
-    } else
-    {
-      this.current_action.timeScale = 1.0; // стандарт
-    }
   }
 
   draw(): void {}
