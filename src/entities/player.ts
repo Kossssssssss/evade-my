@@ -8,7 +8,7 @@ export class Player implements GameObject
   velocity: Vector2 = { x: 0, y: 0 };
   radius: number = 0.8;
 
-  private speed: number = 4;
+  public speed: number = 4;
   private target: Vector2 = { x: 0, y: 0 };
 
   model?: THREE.Object3D;

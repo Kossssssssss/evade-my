@@ -31,7 +31,6 @@ export class GameScreen
   private use_joystick: boolean = false;
 
   private joystick?: Joystick;
-  private player_speed: number = 300;
 
   private score_point: number = 10;
 
@@ -318,6 +317,7 @@ export class GameScreen
       }, 2000 );
       return;
     }
+
     if ( this.use_joystick && this.joystick )
     {
       const dir = this.joystick.getDirection();
@@ -329,11 +329,10 @@ export class GameScreen
         const ny = dir.y / len;
 
         const strength = Math.min( len, 1 );
+        const move_distance = this.player.speed * 0.5; 
 
-        const step = this.player_speed * dt * strength;
-
-        const target_x = this.player.position.x + nx * step;
-        const target_y = this.player.position.y + ny * step;
+        const target_x = this.player.position.x + nx * move_distance * strength;
+        const target_y = this.player.position.y + ny * move_distance * strength;
 
         this.player.setTarget( target_x, target_y );
       }
