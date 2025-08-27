@@ -20,3 +20,26 @@ window.addEventListener('DOMContentLoaded', () => {
     screen_manager.start();
   });
 });
+
+window.addEventListener( "resize", () =>
+{
+  const hudCanvas = document.getElementById( "hudCanvas" ) as HTMLCanvasElement;
+  if ( hudCanvas )
+  {
+    const ctx = hudCanvas.getContext( "2d" );
+    if ( ctx ) resizeCanvas( hudCanvas, ctx );
+  }
+} );
+
+function resizeCanvas( canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D )
+{
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+
+  canvas.style.width = window.innerWidth + "px";
+  canvas.style.height = window.innerHeight + "px";
+
+  ctx.setTransform( dpr, 0, 0, dpr, 0, 0 );
+}

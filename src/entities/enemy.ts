@@ -107,6 +107,7 @@ export class Enemy
       const velocity = Math.hypot( dx, dy ) / dt;
       const base_speed = 2;
       const animation_speed = Math.max( 0.5, Math.min( 3, velocity / base_speed ) );
+
       if ( this.current_action )
       {
         this.current_action.timeScale = animation_speed;
@@ -148,10 +149,11 @@ export class Enemy
       .reset()
       .setLoop( THREE.LoopOnce, 1 )
       .play().clampWhenFinished = true;
+
     this.current_action.timeScale = 1.5;
 
-    const hitDelay = ( action.getClip().duration / this.current_action.timeScale ) * 0.3;
-    setTimeout( () => onHit?.(), hitDelay * 1000 );
+    const hit_delay = ( action.getClip().duration / this.current_action.timeScale ) * 0.3;
+    setTimeout( () => onHit?.(), hit_delay * 1000 );
 
     this.mixer.addEventListener( "finished", ( e ) =>
     {

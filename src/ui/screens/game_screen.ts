@@ -82,6 +82,8 @@ export class GameScreen
       console.log( "✅ Assets loaded!" );
     }
 
+    this.ctx.textAlign = "left";
+    this.ctx.textBaseline = "top";
     this.is_losing = false;
     this.running = true;
     this.score = 0;
@@ -99,15 +101,14 @@ export class GameScreen
     this.renderer.setScissorTest( true );
 
     this.scene = new THREE.Scene();
-    const aspect = this.canvas.width / this.canvas.height;
-    const d = 10;
+    const width = window.innerWidth / 80;  // коефіцієнт масштабу
+    const height = window.innerHeight / 80;
 
     this.camera = new THREE.OrthographicCamera(
-      -d * aspect, d * aspect,
-      d, -d,
+      -width, width,
+      height, -height,
       0.1, 1000
     );
-
     this.camera.position.set( 20, 20, 20 );
     this.camera.lookAt( 0, 0, 0 );
     const groundGeometry = new THREE.PlaneGeometry( 2000, 2000 );
@@ -448,59 +449,61 @@ export class GameScreen
     this.ctx.clearRect( 0, 0, this.hud_canvas.width, this.hud_canvas.height );
     this.ctx.fillStyle = 'white';
     this.ctx.font = '20px Arial';
-    this.ctx.fillText( `Score: ${Math.floor( this.score )}`, 10, 30 );
-    this.ctx.fillText( `Lives: ${this.lives}`, 10, 60 );
+    const padding = 20;
+    this.ctx.fillText( `Score: ${Math.floor( this.score )}`, padding, padding );
+    this.ctx.fillText( `Lives: ${this.lives}`, padding, padding + 30 );
     this.ctx.fillText(
       `Wave: ${this.wave_controller.getCurrentWave()} / ${this.wave_controller.getTotalWaves()}`,
-      10, 90
+      padding, padding + 60
     );
     this.ctx.fillText(
       `Time left: ${Math.ceil( this.wave_controller.getTimer() )}`,
-      10, 120
+      padding, padding + 90
     );
-
     if ( this.use_joystick && this.joystick )
     {
       this.joystick.draw( this.ctx );
     }
   }
 
-private spawnEnemy(): void {
-  const left = this.camera.left;
-  const right = this.camera.right;
-  const top = this.camera.top;
-  const bottom = this.camera.bottom;
-  const margin = 10;
+  private spawnEnemy(): void
+  {
+    const left = this.camera.left;
+    const right = this.camera.right;
+    const top = this.camera.top;
+    const bottom = this.camera.bottom;
+    const margin = 10;
 
-  let start = { x: 0, y: 0 };
-  let end = { x: 0, y: 0 };
+    let start = { x: 0, y: 0 };
+    let end = { x: 0, y: 0 };
 
-  const side = Math.floor(Math.random() * 4);
-  switch (side) {
-    case 0: // зліва → вправо
-      start = { x: left - margin, y: Math.random() * (top - bottom) + bottom };
-      end = { x: right + margin, y: Math.random() * (top - bottom) + bottom };
-      break;
+    const side = Math.floor( Math.random() * 4 );
+    switch ( side )
+    {
+      case 0: // зліва → вправо
+        start = { x: left - margin, y: Math.random() * ( top - bottom ) + bottom };
+        end = { x: right + margin, y: Math.random() * ( top - bottom ) + bottom };
+        break;
 
-    case 1: // справа → вліво
-      start = { x: right + margin, y: Math.random() * (top - bottom) + bottom };
-      end = { x: left - margin, y: Math.random() * (top - bottom) + bottom };
-      break;
+      case 1: // справа → вліво
+        start = { x: right + margin, y: Math.random() * ( top - bottom ) + bottom };
+        end = { x: left - margin, y: Math.random() * ( top - bottom ) + bottom };
+        break;
 
-    case 2: // зверху → вниз
-      start = { x: Math.random() * (right - left) + left, y: top + margin };
-      end = { x: Math.random() * (right - left) + left, y: bottom - margin };
-      break;
+      case 2: // зверху → вниз
+        start = { x: Math.random() * ( right - left ) + left, y: top + margin };
+        end = { x: Math.random() * ( right - left ) + left, y: bottom - margin };
+        break;
 
-    case 3: // знизу → вверх
-      start = { x: Math.random() * (right - left) + left, y: bottom - margin };
-      end = { x: Math.random() * (right - left) + left, y: top + margin };
-      break;
+      case 3: // знизу → вверх
+        start = { x: Math.random() * ( right - left ) + left, y: bottom - margin };
+        end = { x: Math.random() * ( right - left ) + left, y: top + margin };
+        break;
+    }
+
+    const enemy = new Enemy( this.scene, start, end );
+    this.enemies.push( enemy );
   }
-
-  const enemy = new Enemy(this.scene, start, end);
-  this.enemies.push(enemy);
-}
 
   private handlePointerMove = ( ev: PointerEvent ): void =>
   {
