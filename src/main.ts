@@ -16,6 +16,12 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  if ( platform.isTelegram )
+  {
+    document.addEventListener( "touchmove", ( e ) => e.preventDefault(), { passive: false } );
+    document.addEventListener( "gesturestart", ( e ) => e.preventDefault() );
+  }
+
   platform.onStart(() => {
     screen_manager.start();
   });

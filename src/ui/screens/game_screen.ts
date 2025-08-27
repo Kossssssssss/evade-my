@@ -552,6 +552,7 @@ export class GameScreen
 
   private handlePointerMove = ( ev: PointerEvent ): void =>
   {
+    ev.preventDefault();
     const rect = this.canvas.getBoundingClientRect();
     const mouse_x = ( ( ev.clientX - rect.left ) / rect.width ) * 2 - 1;
     const mouse_y = -( ( ev.clientY - rect.top ) / rect.height ) * 2 + 1;

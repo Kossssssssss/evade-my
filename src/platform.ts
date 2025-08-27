@@ -21,6 +21,7 @@ export class Platform implements PlatformAPI {
       this.webapp.expand();
       this.webapp.setHeaderColor( "bg_color" );
       this.webapp.setBackgroundColor( "#000000" );
+      this.webapp.disableVerticalSwipes();
     }
   }
   onStart(cb: () => void) {
