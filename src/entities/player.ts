@@ -146,8 +146,8 @@ export class Player implements GameObject
 
       const velocity_magnitude = Math.hypot( this.velocity.x, this.velocity.y );
       const base_speed = this.speed;
-      let animation_speed = velocity_magnitude / base_speed * 2;
-
+      let animation_speed = velocity_magnitude / base_speed * 5;
+console.log('animation_speed', animation_speed);
       animation_speed = Math.max( 1, Math.min( 4, animation_speed ) );
       this.playAnimation( "Walk", animation_speed );
     } else
