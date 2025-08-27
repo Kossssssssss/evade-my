@@ -142,6 +142,8 @@ export class GameScreen
       this.canvas.addEventListener( 'pointermove', this.handlePointerMove, { passive: false } );
     }
 
+    this.renderer.render(this.scene, this.camera);
+
     requestAnimationFrame( this.loop );
   }
 
@@ -190,89 +192,64 @@ export class GameScreen
 
   private onWaveEnd(): void
   {
-    for ( const enemy of this.enemies )
+    while ( this.enemies.length > 0 )
     {
-      if ( enemy.model )
-      {
-        this.scene.remove( enemy.model );
-
-        enemy.model.traverse( ( child: any ) =>
-        {
-          if ( child.geometry ) child.geometry.dispose();
-          if ( child.material )
-          {
-            if ( Array.isArray( child.material ) )
-            {
-              child.material.forEach( ( m: THREE.Material ) => m.dispose() );
-            } else
-            {
-              child.material.dispose();
-            }
-          }
-        } );
-      }
+      this.removeEnemy( this.enemies[0] );
     }
-
-    this.enemies = [];
   }
 
-  private update( dt: number ): void
+  private updateEnemies( dt: number ): void
   {
-    const now = performance.now() / 1000;
-    this.wave_controller.update( dt );
-
-    this.player.update( dt );
-
-    if ( this.wave_controller.inWave() )
-    {
-      if ( now - this.last_spawn_time >= this.spawn_interval )
-      {
-        this.spawnEnemy();
-        this.last_spawn_time = now;
-      }
-    }
-
-    if ( this.wave_controller.isCollecting() )
-    {
-      if ( now - this.last_item_spawn >= this.item_spawn_interval / 4 )
-      {
-        const num_items = 5;
-        for ( let i = 0; i < num_items; i++ )
-        {
-          this.spawnFallingItem( true );
-        }
-        this.last_item_spawn = now;
-      }
-    } else
-    {
-      if ( now - this.last_item_spawn >= this.item_spawn_interval )
-      {
-        this.spawnFallingItem();
-        this.last_item_spawn = now;
-      }
-    }
-
-    // for ( const item of this.falling_items )
-    // {
-    //   item.update( dt );
-    // }
-
-    // this.falling_items = this.falling_items.filter( item =>
-    // {
-    //   const dx = item.position.x - this.player.position.x;
-    //   const dy = item.position.y - this.player.position.y;
-    //   const dist = Math.hypot( dx, dy );
-    //   const caught = dist < item.radius + this.player.radius;
-    //   if ( caught ) this.score += this.score_point;
-    //   return !caught && item.position.y < this.canvas.height + item.radius;
-    // } );
-
     for ( const enemy of this.enemies )
     {
-      // enemy.setTarget( this.player.position.x, this.player.position.y );
       enemy.update( dt );
     }
+  }
 
+  private checkGameOver(): boolean
+  {
+    if ( this.lives > 0 || this.is_losing ) return false;
+
+    this.is_losing = true;
+    this.player.playLoseAnimation();
+
+    setTimeout( () =>
+    {
+      this.destroy();
+      this.screen_manager.showScreen( 'results' );
+    }, 2000 );
+
+    return true;
+  }
+
+  private endGame(): void
+  {
+    this.destroy();
+    this.screen_manager.showScreen( 'results' );
+  }
+
+  private handleJoystick( dt: number ): void
+  {
+    if ( !this.use_joystick || !this.joystick ) return;
+
+    const dir = this.joystick.getDirection();
+    if ( dir.x === 0 && dir.y === 0 ) return;
+
+    const len = Math.hypot( dir.x, dir.y );
+    const nx = dir.x / len;
+    const ny = dir.y / len;
+
+    const strength = Math.min( len, 1 );
+    const move_distance = this.player.speed * 0.5;
+
+    this.player.setTarget(
+      this.player.position.x + nx * move_distance * strength,
+      this.player.position.y + ny * move_distance * strength
+    );
+  }
+
+  private checkCollisions(): void
+  {
     this.enemies.forEach( enemy =>
     {
       if ( enemy.isAttacking() ) return;
@@ -281,73 +258,68 @@ export class GameScreen
       const dy = this.player.position.y - enemy.position.y;
       const dist = Math.hypot( dx, dy );
 
-      const collided = dist < this.player.radius + enemy.radius;
-
-      if ( collided )
+      if ( dist < this.player.radius + enemy.radius )
       {
-        this.player.freeze();
-        this.player.stopAnimation();
-
-        this.lives--;
-        console.log( "Player hit! Lives:", this.lives );
-
-        const onHit = () =>
-        {
-          if ( this.lives > 0 ) this.player.playHitAnimation();
-        }
-
-        const onFinished = () =>
-        {
-          this.removeEnemy( enemy );
-          this.player.unfreeze();
-        }
-
-        enemy.playAttackAnimation( this.player.position, onHit, onFinished ); 
+        this.handlePlayerHit( enemy );
       }
     } );
+  }
 
-    if ( this.lives <= 0 && !this.is_losing )
+  private handlePlayerHit( enemy: Enemy ): void
+  {
+    this.player.freeze();
+    this.player.stopAnimation();
+    this.lives--;
+
+    const onHit = () => { if ( this.lives > 0 ) this.player.playHitAnimation(); };
+    const onFinished = () => { this.removeEnemy( enemy ); this.player.unfreeze(); };
+
+    enemy.playAttackAnimation( this.player.position, onHit, onFinished );
+  }
+
+  private handleSpawns( now: number ): void
+  {
+    if ( this.wave_controller.inWave() && now - this.last_spawn_time >= this.spawn_interval )
     {
-      this.is_losing = true;
-      this.player.playLoseAnimation();
-      setTimeout( () =>
-      {
-        this.destroy();
-        this.screen_manager.showScreen( 'results' );
-      }, 2000 );
-      return;
+      this.spawnEnemy();
+      this.last_spawn_time = now;
     }
 
-    if ( this.use_joystick && this.joystick )
+    if ( this.wave_controller.isCollecting() )
     {
-      const dir = this.joystick.getDirection();
-
-      if ( dir.x !== 0 || dir.y !== 0 )
+      if ( now - this.last_item_spawn >= this.item_spawn_interval / 4 )
       {
-        const len = Math.hypot( dir.x, dir.y );
-        const nx = dir.x / len;
-        const ny = dir.y / len;
-
-        const strength = Math.min( len, 1 );
-        const move_distance = this.player.speed * 0.5; 
-
-        const target_x = this.player.position.x + nx * move_distance * strength;
-        const target_y = this.player.position.y + ny * move_distance * strength;
-
-        this.player.setTarget( target_x, target_y );
+        for ( let i = 0; i < 5; i++ ) this.spawnFallingItem( true );
+        this.last_item_spawn = now;
       }
+    } else if ( now - this.last_item_spawn >= this.item_spawn_interval )
+    {
+      this.spawnFallingItem();
+      this.last_item_spawn = now;
     }
+  }
 
+  private update( dt: number ): void
+  {
+    const now = performance.now() / 1000;
+
+    this.wave_controller.update( dt );
+    this.player.update( dt );
+
+    this.handleSpawns( now );
+    this.updateEnemies( dt );
+    this.checkCollisions();
+
+    this.handleJoystick( dt );
+
+    if ( this.checkGameOver() ) return;
     if ( this.wave_controller.isFinished() )
     {
-      this.destroy();
-      this.screen_manager.showScreen( 'results' );
+      this.endGame();
       return;
     }
 
-    const is_paused = this.wave_controller.isPaused();
-
-    if ( is_paused )
+    if ( this.wave_controller.isPaused() )
     {
       this.onWaveEnd();
     }
@@ -411,26 +383,9 @@ export class GameScreen
     this.canvas.removeEventListener( 'pointermove', this.handlePointerMove );
     this.joystick = undefined;
 
-    for ( const enemy of this.enemies )
+    while ( this.enemies.length > 0 )
     {
-      if ( enemy.model )
-      {
-        this.scene.remove( enemy.model );
-        enemy.model.traverse( ( child: any ) =>
-        {
-          if ( child.geometry ) child.geometry.dispose();
-          if ( child.material )
-          {
-            if ( Array.isArray( child.material ) )
-            {
-              child.material.forEach( ( m: THREE.Material ) => m.dispose() );
-            } else
-            {
-              child.material.dispose();
-            }
-          }
-        } );
-      }
+      this.removeEnemy( this.enemies[0] );
     }
     this.enemies = [];
 
@@ -510,45 +465,42 @@ export class GameScreen
     }
   }
 
-  private spawnEnemy(): void
-  {
-    const left = this.camera.left;
-    const right = this.camera.right;
-    const top = this.camera.top;
-    const bottom = this.camera.bottom;
+private spawnEnemy(): void {
+  const left = this.camera.left;
+  const right = this.camera.right;
+  const top = this.camera.top;
+  const bottom = this.camera.bottom;
+  const margin = 10;
 
-    let x = 0, y = 0;
+  let start = { x: 0, y: 0 };
+  let end = { x: 0, y: 0 };
 
-    const side = Math.floor( Math.random() * 4 );
-    const margin = 5;
+  const side = Math.floor(Math.random() * 4);
+  switch (side) {
+    case 0: // зліва → вправо
+      start = { x: left - margin, y: Math.random() * (top - bottom) + bottom };
+      end = { x: right + margin, y: Math.random() * (top - bottom) + bottom };
+      break;
 
-    switch ( side )
-    {
-      case 0: // left
-        x = left - margin; // за межами
-        y = ( Math.random() * ( top - bottom ) ) + bottom;
-        break;
-      case 1: // right
-        x = right + margin;
-        y = ( Math.random() * ( top - bottom ) ) + bottom;
-        break;
-      case 2: // top
-        x = ( Math.random() * ( right - left ) ) + left;
-        y = top + margin;
-        break;
-      case 3: // bottom
-        x = ( Math.random() * ( right - left ) ) + left;
-        y = bottom - margin;
-        break;
-    }
+    case 1: // справа → вліво
+      start = { x: right + margin, y: Math.random() * (top - bottom) + bottom };
+      end = { x: left - margin, y: Math.random() * (top - bottom) + bottom };
+      break;
 
-    const target_x = ( Math.random() * ( right - left ) ) + left;
-    const target_y = ( Math.random() * ( top - bottom ) ) + bottom;
+    case 2: // зверху → вниз
+      start = { x: Math.random() * (right - left) + left, y: top + margin };
+      end = { x: Math.random() * (right - left) + left, y: bottom - margin };
+      break;
 
-    const enemy = new Enemy( this.scene, { x, y }, { x: target_x, y: target_y } );
-
-    this.enemies.push( enemy );
+    case 3: // знизу → вверх
+      start = { x: Math.random() * (right - left) + left, y: bottom - margin };
+      end = { x: Math.random() * (right - left) + left, y: top + margin };
+      break;
   }
+
+  const enemy = new Enemy(this.scene, start, end);
+  this.enemies.push(enemy);
+}
 
   private handlePointerMove = ( ev: PointerEvent ): void =>
   {

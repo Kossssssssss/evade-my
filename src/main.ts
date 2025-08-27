@@ -19,6 +19,4 @@ window.addEventListener('DOMContentLoaded', () => {
   platform.onStart(() => {
     screen_manager.start();
   });
-
-  console.log("User:", platform.getUser());
 });
