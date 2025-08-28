@@ -16,6 +16,10 @@ export class GameScreen
   private screen_manager: ScreenManager;
   private is_losing: boolean = false;
 
+  private player_circle!: THREE.Mesh;
+  private target_circle!: THREE.Mesh;
+  private line!: THREE.ArrowHelper;
+
   private player!: Player;
   private enemies: Enemy[] = [];
   private score: number = 0;
@@ -92,7 +96,7 @@ export class GameScreen
 
     this.wave_controller = new WaveController( 5, 15, 8 );
 
-    this.renderer = new THREE.WebGLRenderer( { canvas: this.canvas } );
+    this.renderer = new THREE.WebGLRenderer( { canvas: this.canvas, antialias: true } );
     this.renderer.setSize( this.canvas.width, this.canvas.height );
 
     this.renderer.setViewport( 0, 0, window.innerWidth, window.innerHeight );
@@ -128,6 +132,32 @@ export class GameScreen
     this.scene.add( light );
 
     this.player = new Player( this.scene );
+
+    // кружок під гравцем
+    const ring_geo = new THREE.RingGeometry( 0.5, 0.6, 32 );
+    const ring_mat = new THREE.MeshBasicMaterial( { color: 0x00ff00, transparent: true, opacity: 0.8, side: THREE.DoubleSide } );
+    this.player_circle = new THREE.Mesh( ring_geo, ring_mat );
+    this.player_circle.rotation.x = -Math.PI / 2;
+    this.scene.add( this.player_circle );
+
+    // кружок в точці цілі
+    const target_geo = new THREE.RingGeometry( 0.3, 0.4, 32 );
+    const target_mat = new THREE.MeshBasicMaterial( { color: 0xff4444, transparent: true, opacity: 0.8, side: THREE.DoubleSide } );
+    this.target_circle = new THREE.Mesh( target_geo, target_mat );
+    this.target_circle.rotation.x = -Math.PI / 2;
+    this.scene.add( this.target_circle );
+
+    const dir = new THREE.Vector3(
+      this.player['target'].x - this.player.position.x,
+      0,
+      this.player['target'].y - this.player.position.y
+    ).normalize();
+
+    const length = this.player_circle.position.distanceTo( this.target_circle.position );
+
+    if ( this.line ) this.scene.remove( this.line );
+    this.line = new THREE.ArrowHelper( dir, new THREE.Vector3( this.player.position.x, 0.05, this.player.position.y ), length, 0xffffff, 0.6, 0.3 );
+    this.scene.add( this.line );
 
     this.player.position = {
       x: 0,
@@ -324,6 +354,31 @@ export class GameScreen
     if ( this.wave_controller.isPaused() )
     {
       this.onWaveEnd();
+    }
+
+    this.player_circle.position.set( this.player.position.x, 0.01, this.player.position.y );
+    this.target_circle.position.set( this.player['target'].x, 0.01, this.player['target'].y );
+    const scale = 1 + 0.2 * Math.sin( performance.now() * 0.005 );
+    this.target_circle.scale.set( scale, scale, scale );
+
+    const start = new THREE.Vector3( this.player.position.x, 0.05, this.player.position.y );
+    const dir = new THREE.Vector3(
+      this.player['target'].x - this.player.position.x,
+      0,
+      this.player['target'].y - this.player.position.y
+    );
+    const length = dir.length();
+console.log('length', length);
+    if ( length > 0.1 )
+    {
+      dir.normalize();
+      this.line.position.copy( start );
+      this.line.setDirection( dir );
+      this.line.setLength( length, 0.5, 0.3 );
+      this.line.visible = true;
+    } else
+    {
+      this.line.visible = false;
     }
   }
 
