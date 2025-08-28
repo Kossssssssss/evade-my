@@ -8,7 +8,7 @@ export class Player implements GameObject
   velocity: Vector2 = { x: 0, y: 0 };
   radius: number = 0.8;
 
-  public speed: number = 4;
+  public speed: number = 10;
   private target: Vector2 = { x: 0, y: 0 };
 
   model?: THREE.Object3D;
@@ -134,22 +134,32 @@ export class Player implements GameObject
 
     this.velocity = { x: dx, y: dy };
 
-    if ( dist > 0.5 )
+    if ( dist > 0.1 )
     {
-      this.position.x += dx * 0.01 * this.speed;
-      this.position.y += dy * 0.01 * this.speed;
+      const nx = dx / dist;
+      const ny = dy / dist;
+
+      const min_speed = 4;
+      const max_speed = 15;
+
+      let dynamic_speed = min_speed + dist * 0.5;
+      dynamic_speed = Math.max( min_speed, Math.min( max_speed, dynamic_speed ) );
+
+      const step = dynamic_speed * delta_time;
+      const move = Math.min( step, dist );
+
+      this.position.x += nx * move;
+      this.position.y += ny * move;
 
       this.model.position.set( this.position.x, 0, this.position.y );
 
-      const angle = Math.atan2( dx, dy );
+      const angle = Math.atan2( nx, ny );
       this.model.rotation.y = angle;
 
-      const velocity_magnitude = Math.hypot( this.velocity.x, this.velocity.y );
-      const base_speed = this.speed;
-      let animation_speed = velocity_magnitude / base_speed * 5;
-      
-      animation_speed = Math.max( 1, Math.min( 4, animation_speed ) );
+      let animation_speed = dynamic_speed / min_speed;
+      animation_speed = Math.max( 1, Math.min( 3, animation_speed ) );
       this.playAnimation( "Walk", animation_speed );
+
     } else
     {
       if ( this.current_action )

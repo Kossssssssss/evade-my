@@ -139,6 +139,8 @@ export class GameScreen
       this.joystick = new Joystick( this.canvas );
     } else
     {
+      this.canvas.addEventListener( 'pointerdown', this.handlePointerDown, { passive: false } );
+
       this.canvas.addEventListener( 'pointermove', this.handlePointerMove, { passive: false } );
     }
 
@@ -503,6 +505,22 @@ export class GameScreen
     const enemy = new Enemy( this.scene, start, end );
     this.enemies.push( enemy );
   }
+
+  private handlePointerDown = ( ev: PointerEvent ): void =>
+  {
+    ev.preventDefault();
+    const rect = this.canvas.getBoundingClientRect();
+    const mouse_x = ( ( ev.clientX - rect.left ) / rect.width ) * 2 - 1;
+    const mouse_y = -( ( ev.clientY - rect.top ) / rect.height ) * 2 + 1;
+
+    this.mouse.set( mouse_x, mouse_y );
+    this.raycaster.setFromCamera( this.mouse, this.camera );
+
+    if ( this.raycaster.ray.intersectPlane( this.ground_plane, this.plane_intersect ) )
+    {
+      this.player.setTarget( this.plane_intersect.x, this.plane_intersect.z );
+    }
+  };
 
   private handlePointerMove = ( ev: PointerEvent ): void =>
   {
