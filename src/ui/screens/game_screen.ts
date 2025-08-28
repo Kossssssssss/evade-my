@@ -6,7 +6,6 @@ import { locations } from '../../configs/location_config.js';
 import { FallingItem } from '../../entities/falling_item.js';
 import { WaveController } from '../../wave_controller.js';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { AssetManager } from '../../assets_manager.js';
 import { LoaderScreen } from './loader_screen.js';
 

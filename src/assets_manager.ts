@@ -22,12 +22,12 @@ export class AssetManager {
 
     this.load_promise = new Promise((resolve, reject) => {
       loader.load(
-        '/assets/all.glb',
+        import.meta.env.BASE_URL + 'assets/all.glb',
         (gltf) => {
           this.gltf = gltf;
 
-          this.textures['green'] = tex_loader.load('/assets/green_texture.png');
-          this.textures['purple'] = tex_loader.load('/assets/purple_texture.png');
+          this.textures['green'] = tex_loader.load( import.meta.env.BASE_URL + 'assets/green_texture.png');
+          this.textures['purple'] = tex_loader.load( import.meta.env.BASE_URL + 'assets/purple_texture.png');
 
           this.is_loading = false;
           this.is_loaded = true;
