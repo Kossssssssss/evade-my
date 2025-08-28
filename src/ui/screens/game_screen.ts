@@ -56,6 +56,26 @@ export class GameScreen
 
   private hud_canvas: HTMLCanvasElement;
 
+  private floating_labels: {
+    text: string;
+    x: number;
+    y: number;
+    life: number; 
+    color: string;
+  }[] = [];
+
+  private flying_points: {
+    value: number;
+    x: number;
+    y: number;
+    start_x: number;
+    start_y: number;
+    target_x: number;
+    target_y: number;
+    progress: number;
+    color: string;
+  }[] = [];
+
   constructor( canvas: HTMLCanvasElement, screen_manager: ScreenManager )
   {
     this.canvas = canvas;
@@ -189,6 +209,43 @@ export class GameScreen
   public getScore(): number
   {
     return Math.floor( this.score );
+  }
+
+  private spawnAmazingLabel( world_pos: THREE.Vector3 )
+  {
+    const elevated = world_pos.clone();
+    elevated.y += 1.0;
+    elevated.x -= 2.0;
+
+    const screen = this.worldToScreen( elevated );
+
+    this.floating_labels.push( {
+      text: "AMAZING!",
+      x: screen.x,
+      y: screen.y - 20,
+      life: 1.0,    
+      color: "orange"
+    } );
+  }
+
+  private spawnFlyingPoints( value: number, world_pos: THREE.Vector3 )
+  {
+    const elevated = world_pos.clone();
+    elevated.y += 1.0;
+
+    const screen = this.worldToScreen( elevated );
+
+    this.flying_points.push( {
+      value,
+      x: screen.x,
+      y: screen.y,
+      start_x: screen.x,
+      start_y: screen.y,
+      target_x: 80,
+      target_y: 30,
+      progress: 0,
+      color: "yellow"
+    } );
   }
 
   private removeEnemy( enemy: Enemy ): void
@@ -447,11 +504,46 @@ export class GameScreen
       const dist = this.player.consumePlannedDistance();
       if ( dist > this.distance_threshold )
       {
-      console.log('dist > DISTANCE_THRESHOLD', dist);
+        // this.score += bonus;
         const bonus = Math.floor( 100 * Math.pow( dist / this.distance_threshold, 1.2 ) );
-        this.score += bonus;
+        const world_pos = new THREE.Vector3(
+          this.player.position.x,
+          2,               
+          this.player.position.y
+        );
+
+        this.spawnAmazingLabel( world_pos );
+        this.spawnFlyingPoints( bonus, world_pos );
         // this.showPopup( `+${bonus}` );
-      } 
+      }
+    }
+
+    // AMAZING labels
+    for ( let i = this.floating_labels.length - 1; i >= 0; i-- )
+    {
+      const lbl = this.floating_labels[i];
+      lbl.life -= dt;
+      if ( lbl.life <= 0 )
+      {
+        this.floating_labels.splice( i, 1 );
+      }
+    }
+
+    // Flying points
+    for ( let i = this.flying_points.length - 1; i >= 0; i-- )
+    {
+      const f = this.flying_points[i];
+      f.progress += dt / 1.0;
+      if ( f.progress >= 1 )
+      {
+        this.score += f.value;  
+        this.flying_points.splice( i, 1 );
+      } else
+      {
+        const t = f.progress;
+        f.x = f.start_x + ( f.target_x - f.start_x ) * t;
+        f.y = f.start_y + ( f.target_y - f.start_y ) * t;
+      }
     }
   }
 
@@ -593,6 +685,41 @@ export class GameScreen
     {
       this.joystick.draw( this.ctx );
     }
+    // AMAZING
+    for ( const lbl of this.floating_labels )
+    {
+      const alpha = Math.max( 0, lbl.life );
+      this.ctx.globalAlpha = alpha;
+      this.ctx.fillStyle = lbl.color;
+      this.ctx.font = "28px Arial Black";
+      this.ctx.fillText( lbl.text, lbl.x, lbl.y );
+      this.ctx.globalAlpha = 1;
+    }
+
+    // Flying points
+    for ( const f of this.flying_points )
+    {
+      const alpha = 1 - f.progress;
+      this.ctx.globalAlpha = alpha;
+      this.ctx.fillStyle = f.color;
+      this.ctx.font = "24px Arial Black";
+      this.ctx.fillText( "+" + f.value, f.x, f.y );
+      this.ctx.globalAlpha = 1;
+    }
+  }
+
+  private worldToScreen( pos: THREE.Vector3 ): { x: number, y: number }
+  {
+    const vector = pos.clone();
+    vector.project( this.camera ); // переводимо в clip space
+
+    const width = this.hud_canvas.width;
+    const height = this.hud_canvas.height;
+
+    return {
+      x: ( vector.x + 1 ) / 2 * width,
+      y: ( -vector.y + 1 ) / 2 * height
+    };
   }
 
   private spawnEnemy(): void
