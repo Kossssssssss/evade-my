@@ -11,5 +11,6 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "npm run build && git subtree split --prefix dist main -b gh-pages-deploy && git push dev gh-pages-deploy:gh-pages --force && git branch -D gh-pages-deploy"
-  }
+  },
+  "homepage": "https://Kossssssssss.github.io/evade-my/"
 }
