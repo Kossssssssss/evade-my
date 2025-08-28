@@ -52,6 +52,8 @@ export class GameScreen
   private plane_intersect = new THREE.Vector3();
   private mouse = new THREE.Vector2();
 
+  private distance_threshold: number = 10;
+
   private hud_canvas: HTMLCanvasElement;
 
   constructor( canvas: HTMLCanvasElement, screen_manager: ScreenManager )
@@ -106,6 +108,8 @@ export class GameScreen
     this.scene = new THREE.Scene();
     const width = window.innerWidth / 80;  // коефіцієнт масштабу
     const height = window.innerHeight / 80;
+
+    console.log('width', width, 'height', height);
 
     this.camera = new THREE.OrthographicCamera(
       -width, width,
@@ -176,6 +180,9 @@ export class GameScreen
 
     this.renderer.render(this.scene, this.camera);
 
+    const max_dist = this.calcMaxDistanceFromCamera();
+    this.distance_threshold = max_dist * 0.4;
+    
     requestAnimationFrame( this.loop );
   }
 
@@ -368,7 +375,7 @@ export class GameScreen
       this.player['target'].y - this.player.position.y
     );
     const length = dir.length();
-console.log('length', length);
+
     if ( length > 0.1 )
     {
       dir.normalize();
@@ -379,6 +386,20 @@ console.log('length', length);
     } else
     {
       this.line.visible = false;
+    }
+
+    this.score += 2 * dt;
+
+    if ( this.player.hasReachedTarget() )
+    {
+      const dist = this.player.consumePlannedDistance();
+      if ( dist > this.distance_threshold )
+      {
+      console.log('dist > DISTANCE_THRESHOLD', dist);
+        const bonus = Math.floor( 100 * Math.pow( dist / this.distance_threshold, 1.2 ) );
+        this.score += bonus;
+        // this.showPopup( `+${bonus}` );
+      } 
     }
   }
 
@@ -594,4 +615,36 @@ console.log('length', length);
       this.player.setTarget( this.plane_intersect.x, this.plane_intersect.z );
     }
   };
+
+  private calcMaxDistanceFromCamera(): number
+  {
+    const ndc_corners = [
+      new THREE.Vector2( -1, -1 ), // нижній лівий
+      new THREE.Vector2( 1, -1 ), // нижній правий
+      new THREE.Vector2( -1, 1 ), // верхній лівий
+      new THREE.Vector2( 1, 1 ), // верхній правий
+    ];
+
+    const world_points: THREE.Vector3[] = [];
+    const raycaster = new THREE.Raycaster();
+
+    for ( const ndc of ndc_corners )
+    {
+      raycaster.setFromCamera( ndc, this.camera );
+      const hit = raycaster.ray.intersectPlane( this.ground_plane, new THREE.Vector3() );
+      if ( hit ) world_points.push( hit.clone() );
+    }
+
+    let max_dist = 0;
+    for ( let i = 0; i < world_points.length; i++ )
+    {
+      for ( let j = i + 1; j < world_points.length; j++ )
+      {
+        const d = world_points[i].distanceTo( world_points[j] );
+        if ( d > max_dist ) max_dist = d;
+      }
+    }
+
+    return max_dist;
+  }
 }

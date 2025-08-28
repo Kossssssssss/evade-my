@@ -20,6 +20,8 @@ export class Player implements GameObject
   private is_hit:    boolean = false;
   private is_frozen: boolean = false;
 
+  private planned_distance: number = 0;
+
   constructor( scene: THREE.Scene )
   {
     this.model = AssetManager.getModel();
@@ -116,6 +118,27 @@ export class Player implements GameObject
   setTarget( x: number, y: number )
   {
     this.target = { x, y };
+
+    const dx = this.target.x - this.position.x;
+    const dy = this.target.y - this.position.y;
+    this.planned_distance = Math.hypot( dx, dy );
+  }
+
+  hasReachedTarget(): boolean
+  {
+    const dx = this.target.x - this.position.x;
+    const dy = this.target.y - this.position.y;
+    const dist = Math.hypot( dx, dy );
+
+    return dist < 0.1;
+  }
+
+  consumePlannedDistance(): number
+  {
+    const d = this.planned_distance;
+    this.planned_distance = 0;
+
+    return d;
   }
 
   update( delta_time: number ): void
