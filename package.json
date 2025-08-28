@@ -10,6 +10,6 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && git add -f dist && git commit -m 'Deploy' && git subtree push --prefix dist dev gh-pages"
+    "deploy": "npm run build && git subtree split --prefix dist main -b gh-pages-deploy && git push dev gh-pages-deploy:gh-pages --force && git branch -D gh-pages-deploy"
   }
 }

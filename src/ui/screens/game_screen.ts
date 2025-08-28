@@ -239,12 +239,64 @@ export class GameScreen
 
   private updateEnemies( dt: number ): void
   {
-    for ( const enemy of this.enemies )
+    for ( let i = 0; i < this.enemies.length; i++ )
     {
-      enemy.update( dt );
+      const e1 = this.enemies[i];
+      e1.update( dt );
+
+      for ( let j = i + 1; j < this.enemies.length; j++ )
+      {
+        const e2 = this.enemies[j];
+
+        const dx = e1.position.x - e2.position.x;
+        const dy = e1.position.y - e2.position.y;
+        const dist = Math.hypot( dx, dy );
+
+       const now = performance.now();
+
+        if ( dist < e1.radius + e2.radius )
+        {
+          if ( now - e1.last_collision_time > 2000 && now - e2.last_collision_time > 2000 )
+          {
+            e1.last_collision_time = now;
+            e2.last_collision_time = now;
+
+            e1.freeze();
+            e2.freeze();
+
+            e1.playLoseAnimation();
+            e2.playLoseAnimation();
+
+            setTimeout( () =>
+            {
+              e1.unfreeze();
+              e2.unfreeze();
+
+              const dx = e2.position.x - e1.position.x;
+              const dy = e2.position.y - e1.position.y;
+              const len = Math.hypot( dx, dy ) || 1;
+              const nx = dx / len;
+              const ny = dy / len;
+
+              const distance = 20;
+
+              const new_end1 = {
+                x: e1.position.x - nx * distance,
+                y: e1.position.y - ny * distance
+              };
+              const new_end2 = {
+                x: e2.position.x + nx * distance,
+                y: e2.position.y + ny * distance
+              };
+
+              e1.resetPathFromCollision( new_end1 );
+              e2.resetPathFromCollision( new_end2 );
+            }, 1000 );
+          }
+        }
+      }
     }
   }
-
   private checkGameOver(): boolean
   {
     if ( this.lives > 0 || this.is_losing ) return false;

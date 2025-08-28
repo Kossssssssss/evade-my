@@ -28,6 +28,9 @@ export class Enemy
   private current_action?: THREE.AnimationAction;
   private is_attacking: boolean = false;
 
+  private is_frozen: boolean = false;
+  public last_collision_time: number = 0;
+
   constructor( scene: THREE.Scene, start: { x: number; y: number }, end: { x: number; y: number } )
   {
     this.start = start;
@@ -71,11 +74,71 @@ export class Enemy
     }
   }
 
-  update( dt: number ): void
+  public resetPathFromCollision( end: { x: number; y: number } )
+  {
+    this.start = { ...this.position };
+    this.end = { ...end };
+    this.t = 0;
+
+    if ( this.model )
+    {
+      this.model.position.set( this.start.x, 0, this.start.y );
+    }
+
+    this.trajectory = TRAJECTORIES[Math.floor( Math.random() * TRAJECTORIES.length )];
+    this.path_data = {};
+
+    if ( this.trajectory === "arc" )
+    {
+      const mid_x = ( this.start.x + end.x ) / 2;
+      const mid_y = ( this.start.y + end.y ) / 2;
+      const offset = Math.random() * 50 - 5;
+      this.path_data.control = { x: mid_x + offset, y: mid_y + offset };
+    }
+
+    this.playAnimation( "Walk" );
+  }
+
+  public freeze(): void
+  {
+    this.is_frozen = true;
+  }
+
+  public unfreeze(): void
+  {
+    this.is_frozen = false;
+  }
+
+  public playLoseAnimation()
+  {
+    if ( !this.mixer ) return;
+console.log('play lose animation');
+    const key = Object.keys( this.actions ).find( k => k.toLowerCase().includes( "lose" ) );
+    if ( !key ) return;
+
+    const action = this.actions[key];
+
+    if ( this.current_action )
+    {
+      this.current_action.stop();
+    }
+
+    this.current_action = action;
+    this.current_action.reset()
+      .setLoop( THREE.LoopOnce, 1 )
+      .play();
+
+    // this.current_action.clampWhenFinished = true;
+    this.current_action.enabled = true;
+
+    this.current_action.timeScale = 1.0;
+  }
+
+  public update( dt: number ): void
   {
     if ( !this.model ) return;
 
-    if ( this.is_attacking )
+    if ( this.is_attacking || this.is_frozen )
     {
       this.mixer?.update( dt );
       return;
